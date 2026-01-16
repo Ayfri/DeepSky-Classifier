@@ -1,0 +1,18 @@
+# Python & Environments
+__pycache__/
+*.py[cod]
+.venv/
+
+# Project Data & Artifacts
+data/
+models/
+
+# Secrets & Environment
+.env
+*.env
+
+# IDEs & System
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -9,7 +9,19 @@ dependencies = [
     "astroquery>=0.4.11",
     "colorama>=0.4.6",
     "httpx>=0.28.1",
+    "joblib>=1.4.2",
     "pandas>=2.3.3",
+    "prefect>=3.0.0",
+    "pyarrow>=19.0.0",
     "pydantic>=2.12.5",
+    "pyvo>=1.6.1",
+    "scikit-learn>=1.6.1",
+    "tqdm>=4.67.1",
     "sqlalchemy>=2.0.45",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.9.0",
 ]

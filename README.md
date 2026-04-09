@@ -28,10 +28,10 @@ graph TD
     end
 
     subgraph "DeepSky Core (VPS)"
-        ETL[Ingestion Engine (Python/Astroquery)]
+        ETL["Ingestion Engine (Python/Astroquery)"]
         API[FastAPI Backend]
-        DB[(PostgreSQL - Structured Data)]
-        ML[Inference Engine (Scikit-Learn)]
+        DB["(PostgreSQL - Structured Data)"]
+        ML["Inference Engine (Scikit-Learn)"]
     end
 
     subgraph "Presentation Layer"

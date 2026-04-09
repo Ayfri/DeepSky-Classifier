@@ -1,162 +1,164 @@
-# 🌌 DeepSky-Classifier
+# DeepSky-Classifier
 
-**DeepSky-Classifier** is a high-performance astronomical data pipeline and inference engine. It automates the extraction, processing, and classification of celestial bodies (**Stars, Galaxies, Quasars**) using massive datasets from the **Sloan Digital Sky Survey (SDSS)**.
+**DeepSky-Classifier** is an astronomical data pipeline and machine learning system that automates extraction, processing, and classification of celestial bodies (**Stars, Galaxies, Quasars**) using spectral data from multiple sky surveys.
 
-Built with a philosophy of **"Optimization & Type Safety,"** this project leverages modern Python tooling (uv, Ruff, Pydantic V2) to deliver an industrial-grade machine learning solution.
-
----
-
-## 🎯 Project Scope & Problem Statement
-
-Modern telescopes generate terabytes of data daily, outpacing human analysis capabilities.
-**DeepSky-Classifier** addresses this bottleneck by providing:
-
-1. **Automated Ingestion:** A resilient ETL pipeline connecting directly to SDSS databases via SQL.
-2. **Multi-Class Classification:** A Random Forest model capable of distinguishing deep-space objects based on spectral fingerprints.
-3. **Self-Hosted Infrastructure:** A containerized, privacy-first architecture designed for VPS deployment without reliance on expensive cloud providers.
+Built with Python 3.13, uv, Pydantic V2, and Scikit-Learn.
 
 ---
 
-## 🏗️ Technical Architecture
-
-The system follows a strict Microservices architecture wrapped in Docker containers.
+## Architecture
 
 ```mermaid
 graph TD
-    subgraph "External Data Source"
-        SDSS[SDSS DR17 Database]
+    subgraph catalogs [Catalog Sources]
+        SDSS[SDSS DR17]
+        GAIA[Gaia DR3]
     end
 
-    subgraph "DeepSky Core (VPS)"
-        ETL["Ingestion Engine (Python/Astroquery)"]
-        API[FastAPI Backend]
-        DB["(PostgreSQL - Structured Data)"]
-        ML["Inference Engine (Scikit-Learn)"]
+    subgraph etl [ETL Layer]
+        Extract[Catalog Extractors]
+        Validate[Pydantic Validation]
+        CrossMatch[Cross-Match]
+        Persist[Parquet Persistence]
     end
 
-    subgraph "Presentation Layer"
-        UI[SvelteKit Dashboard]
+    subgraph ml [ML Layer]
+        Features[Feature Selection]
+        Train[Random Forest Training]
+        Evaluate[Evaluation + Metrics]
+        Artifacts[Model Artifacts + SHA-256]
     end
 
-    SDSS -->|SQL Query| ETL
-    ETL -->|Cleaned Data| DB
-    DB <-->|ORM| API
-    DB -->|Training Data| ML
-    ML -->|Serialized Model| API
-    API <-->|REST| UI
+    subgraph orchestration [Orchestration]
+        Prefect[Prefect Flow]
+    end
 
+    SDSS --> Extract
+    GAIA --> Extract
+    Extract --> Validate
+    Validate --> CrossMatch
+    CrossMatch --> Persist
+    Persist --> Features
+    Features --> Train
+    Train --> Evaluate
+    Evaluate --> Artifacts
+    Prefect --> Extract
+    Prefect --> Train
 ```
 
-### The Stack
+### Stack
 
-| Component | Technology | Rationale |
+| Component | Technology | Purpose |
 | --- | --- | --- |
-| **Language** | **Python 3.13** | Latest features, significant performance improvements. |
-| **Package Manager** | **uv** | Rust-based, instant dependency resolution (replaces Pip/Poetry). |
-| **Backend** | **FastAPI** | Async native, auto-documentation, strict Pydantic validation. |
-| **Data Source** | **Astroquery** | Official connector for robust SDSS SQL queries. |
-| **Database** | **PostgreSQL** | Relational integrity for spectral data. |
-| **ML Engine** | **Scikit-Learn** | Random Forest Ensemble for high-accuracy tabular classification. |
-| **Frontend** | **SvelteKit** | Reactive, lightweight UI for data visualization. |
-| **Quality** | **Ruff** | All-in-one linter (Rust) for industrial code quality. |
+| Language | Python 3.13 | Modern syntax, type hints, match/case |
+| Package Manager | uv | Rust-based, instant dependency resolution |
+| Extraction | Astroquery + PyVO | SDSS SQL queries and Gaia TAP access |
+| Validation | Pydantic V2 | Strict schema contracts at every boundary |
+| Storage | Parquet + SQLAlchemy 2 | Columnar analytics + relational metadata |
+| ML | Scikit-Learn | Random Forest ensemble classification |
+| Orchestration | Prefect 3 | Resilient flows with retries and observability |
+| Quality | Ruff + Pytest | Linting and test coverage |
 
 ---
 
-## 📊 Data Dictionary & Features
+## Project Structure
 
-The system ingests photometric data from the SDSS `PhotoObj` and `SpecObj` tables.
-
-| Field | Type | Description | Relevance for AI |
-| --- | --- | --- | --- |
-| `objid` | `int` | Unique SDSS Identifier | Tracking |
-| `ra`, `dec` | `float` | Right Ascension / Declination | Sky mapping |
-| `u`, `g`, `r`, `i`, `z_mag` | `float` | **Photometric Filters** (Ultraviolet to Infrared) | **High**. The color difference (e.g., `u - g`) indicates temperature/age. |
-| `redshift` | `float` | **Redshift (z)** | **Critical**. Measures the object's recessional velocity. <br>
-
-<br>• ~0: Star<br>
-
-<br>• 0.01-0.5: Galaxy<br>
-
-<br>• >1.0: Quasar |
-| `class_label` | `str` | **Target Variable** | STAR, GALAXY, QSO |
+```
+src/
+  core/
+    config.py          Pipeline configuration
+    database.py        SQLAlchemy engine and session management
+    integrity.py       SHA-256 file verification
+    models.py          ORM models (raw + curated tables)
+    schemas.py         Pydantic schemas (raw, curated, validation)
+  etl/
+    catalogs/
+      base.py          Abstract catalog extractor interface
+      gaia.py          Gaia DR3 TAP extractor
+      sdss.py          SDSS DR17 extractor
+    crossmatch.py      Catalog cross-matching utilities
+    federated.py       Multi-catalog federated pipeline
+    ingest.py          SDSS-only baseline pipeline
+    persist.py         Parquet/CSV persistence
+    validate.py        Row-level schema validation with quarantine
+  ml/
+    evaluate.py        Classification metrics
+    features.py        Feature selection and contract
+    train.py           Random Forest training with artifact persistence
+  utils/
+    logger.py          Colored logging
+  workflows/
+    pipeline.py        Prefect-orchestrated end-to-end flow
+tests/
+  test_features.py     Feature contract stability
+  test_query.py        SDSS query generation
+  test_schemas.py      Schema validation boundaries
+```
 
 ---
 
-## 🚀 Installation & Usage
+## Data Sources
+
+| Source | Parameters | Classification Contribution |
+| --- | --- | --- |
+| SDSS DR17 | Optical photometry (u, g, r, i, z), redshift | Baseline: temperature, distance, velocity |
+| Gaia DR3 | Parallax, proper motion (pmra, pmdec) | Galactic vs extragalactic separation |
+
+---
+
+## Installation
 
 ### Prerequisites
 
-* Docker & Docker Compose
-* [uv](https://github.com/astral-sh/uv) (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+* Python 3.13+
+* [uv](https://github.com/astral-sh/uv)
 
-### 1. Local Development Setup
-
-Clone the repository and sync dependencies instantly with `uv`.
+### Setup
 
 ```bash
 git clone https://github.com/Ayfri/deepsky-classifier.git
 cd deepsky-classifier
-
-# Create virtual environment and install deps
 uv sync
-
-# Activate venv
-source .venv/bin/activate
-
 ```
 
-### 2. Run the Data Pipeline (ETL)
-
-We use a specialized script to fetch a **perfectly balanced dataset** (equal distribution of Stars, Galaxies, and Quasars) to avoid model bias.
+### Run the SDSS-only Pipeline
 
 ```bash
-# Fetches 2000 objects of each class (6000 total) and saves to DB/CSV
-uv run src/etl/ingest.py
-
+uv run -m src.etl.ingest
 ```
 
-### 3. Train the Model
-
-Train the Random Forest Classifier on the local data.
+### Run the Federated Pipeline (SDSS + Gaia)
 
 ```bash
-uv run src/ml/train.py --estimators 100
-# Output: Model saved to models/rf_classifier.joblib (Accuracy: ~98%)
-
+uv run -m src.etl.federated
 ```
 
-### 4. Production Deployment (VPS)
-
-Deploy the full stack (Database + API + Frontend) using Docker Compose.
+### Train the Model
 
 ```bash
-docker-compose up -d --build
-
+uv run -m src.ml.train data/raw/sdss/curated_features.parquet
 ```
 
-* **API Docs:** `http://localhost:8000/docs`
-* **Frontend:** `http://localhost:3000`
-
----
-
-## 🧪 Quality Assurance
-
-We enforce strict coding standards via **GitHub Actions**.
-
-* **Linting:** `Ruff` (Checks for unused imports, formatting, complexity).
-* **Typing:** `Mypy` (Static type checking).
-* **Testing:** `Pytest` (Integration tests for API endpoints).
-
-To run checks locally:
+### Run the Full Orchestrated Pipeline
 
 ```bash
-uv run ruff check . --fix
+uv run -m src.workflows.pipeline
+```
+
+### Run Tests
+
+```bash
 uv run pytest
+```
 
+### Lint
+
+```bash
+uv run ruff check .
 ```
 
 ---
 
-## 📜 License
+## License
 
 This project is licensed under the **GNU GPLv3 License**. See the `LICENSE` file for details.

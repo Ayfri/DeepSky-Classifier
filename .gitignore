@@ -12,6 +12,7 @@ models/
 *.env
 
 # IDEs & System
+.cursor/
 .vscode/
 .idea/
 .DS_Store

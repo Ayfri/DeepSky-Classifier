@@ -1,6 +1,5 @@
 from typing import override
 
-from astropy.table import Table
 from astroquery.sdss import SDSS
 import pandas as pd
 from tqdm.auto import tqdm
@@ -50,7 +49,7 @@ class SDSSExtractor(CatalogExtractor):
 		query = CelestialBody.build_sdss_query(limit=limit, label=label)
 
 		try:
-			result: Table | None = SDSS.query_sql(
+			result = SDSS.query_sql(
 				query,
 				data_release=self.data_release,
 			)

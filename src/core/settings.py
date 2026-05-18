@@ -52,11 +52,6 @@ class Settings(BaseSettings):
 		)
 
 	@property
-	def async_postgres_url(self) -> str:
-		"""Async psycopg URL for asyncpg / SQLAlchemy async sessions."""
-		return self.postgres_url.replace("postgresql+psycopg://", "postgresql+psycopg://", 1)
-
-	@property
 	def sqlite_url(self) -> str:
 		"""SQLite fallback used when no DEEPSKY_DB_* vars are set."""
 		db_path = Path("data") / "deepsky.db"

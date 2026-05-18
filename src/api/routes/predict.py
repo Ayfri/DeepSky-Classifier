@@ -1,7 +1,8 @@
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from fastapi import APIRouter, Depends
 import numpy as np
+from sklearn.ensemble import RandomForestClassifier
 
 from src.api.deps import get_metadata, get_model
 from src.api.schemas import (
@@ -10,10 +11,6 @@ from src.api.schemas import (
 	PredictionRequest,
 	PredictionResponse,
 )
-
-if TYPE_CHECKING:
-	from sklearn.ensemble import RandomForestClassifier
-
 
 router = APIRouter(prefix="/predict", tags=["predict"])
 
@@ -41,7 +38,7 @@ def _build_response(
 @router.post("", response_model=PredictionResponse)
 def predict(
 	body: PredictionRequest,
-	model: "RandomForestClassifier" = Depends(get_model),
+	model: RandomForestClassifier = Depends(get_model),
 	metadata: dict[str, Any] = Depends(get_metadata),
 ) -> PredictionResponse:
 	"""Classify a single astronomical object.
@@ -62,7 +59,7 @@ def predict(
 @router.post("/batch", response_model=BatchPredictionResponse)
 def predict_batch(
 	body: BatchPredictionRequest,
-	model: "RandomForestClassifier" = Depends(get_model),
+	model: RandomForestClassifier = Depends(get_model),
 	metadata: dict[str, Any] = Depends(get_metadata),
 ) -> BatchPredictionResponse:
 	"""Classify multiple objects in a single call.

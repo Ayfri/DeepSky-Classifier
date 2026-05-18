@@ -76,7 +76,7 @@ def api_client(tmp_model_dir: Path) -> Generator[TestClient]:
 	from src.core.settings import Settings
 	from tests.api._helpers import fastapi_app
 
-	settings = Settings(model_dir=tmp_model_dir)  # type: ignore[call-arg]
+	settings = Settings(model_dir=tmp_model_dir)
 	settings_module._settings = settings
 
 	clf, meta = _load_model_artefacts(tmp_model_dir)

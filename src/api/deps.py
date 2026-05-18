@@ -1,14 +1,10 @@
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from fastapi import Depends, HTTPException, Request
-
-from src.core.settings import Settings, get_settings
-
-if TYPE_CHECKING:
-	from sklearn.ensemble import RandomForestClassifier
+from fastapi import HTTPException, Request
+from sklearn.ensemble import RandomForestClassifier
 
 
-def get_model(request: Request) -> "RandomForestClassifier":
+def get_model(request: Request) -> RandomForestClassifier:
 	"""Resolve the loaded classifier from app state.
 
 	The model is loaded once at startup via the lifespan context; if it
@@ -28,11 +24,3 @@ def get_metadata(request: Request) -> dict[str, Any]:
 	if metadata is None:
 		raise HTTPException(status_code=503, detail="Model metadata not available")
 	return metadata
-
-
-def settings_dep() -> Settings:
-	"""FastAPI Depends wrapper around the Settings singleton."""
-	return get_settings()
-
-
-SettingsDep = Depends(settings_dep)

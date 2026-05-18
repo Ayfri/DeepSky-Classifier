@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any
 
 import pandas as pd
 from pydantic import BaseModel, ValidationError
@@ -29,7 +29,7 @@ def validate_dataframe(
 			validated = schema.model_validate(record)
 			valid_records.append(validated.model_dump())
 		except ValidationError as exc:
-			quarantine_row = cast("dict[str, Any]", dict(record))
+			quarantine_row = {str(key): value for key, value in record.items()}
 			quarantine_row["_validation_errors"] = str(exc)
 			quarantine_records.append(quarantine_row)
 

@@ -5,14 +5,15 @@ Raw schemas mirror the source catalog shape exactly.
 The curated schema defines the stable ML-ready feature contract
 that downstream training code depends on.
 """
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.core.config import ALLOWED_CLASSES
 
-
 # ---------------------------------------------------------------------------
 # Raw source schemas (one per catalog, preserving provenance)
 # ---------------------------------------------------------------------------
+
 
 class SDSSRawRecord(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
@@ -53,8 +54,10 @@ class GaiaRawRecord(BaseModel):
 # Curated ML-ready contract
 # ---------------------------------------------------------------------------
 
+
 class CuratedFeatureRecord(BaseModel):
 	"""Stable feature contract consumed by training and inference code."""
+
 	model_config = ConfigDict(from_attributes=True)
 
 	class_label: str

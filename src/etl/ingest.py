@@ -1,4 +1,5 @@
 """SDSS-only ingestion pipeline (baseline path)."""
+
 from pathlib import Path
 
 from src.core.config import PipelineConfig
@@ -7,7 +8,6 @@ from src.etl.catalogs.sdss import SDSSExtractor
 from src.etl.persist import persist_dataframe
 from src.etl.validate import validate_dataframe
 from src.utils.logger import setup_logger
-
 
 logger = setup_logger(__name__)
 

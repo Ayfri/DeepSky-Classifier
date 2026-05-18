@@ -4,7 +4,6 @@ from tqdm.auto import tqdm
 
 from src.utils.logger import setup_logger
 
-
 logger = setup_logger(__name__)
 
 
@@ -32,8 +31,7 @@ def validate_dataframe(
 			quarantine_records.append(record)
 
 	logger.info(
-		f"Validation complete: {len(valid_records)} valid, "
-		f"{len(quarantine_records)} quarantined"
+		f"Validation complete: {len(valid_records)} valid, {len(quarantine_records)} quarantined"
 	)
 
 	return pd.DataFrame(valid_records), pd.DataFrame(quarantine_records)

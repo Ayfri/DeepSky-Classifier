@@ -1,12 +1,11 @@
-import pandas as pd
 from astropy.table import Table
 from astroquery.sdss import SDSS
+import pandas as pd
 from tqdm.auto import tqdm
 
 from src.core.models import CelestialBody
 from src.etl.catalogs.base import CatalogExtractor
 from src.utils.logger import setup_logger
-
 
 logger = setup_logger(__name__)
 
@@ -49,7 +48,8 @@ class SDSSExtractor(CatalogExtractor):
 
 		try:
 			result: Table | None = SDSS.query_sql(
-				query, data_release=self.data_release,
+				query,
+				data_release=self.data_release,
 			)
 			if result:
 				return result.to_pandas()

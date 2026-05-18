@@ -8,6 +8,7 @@ class Base(DeclarativeBase):
 
 class CelestialBody(Base):
 	"""Raw SDSS source record stored relationally."""
+
 	__tablename__ = "celestial_bodies"
 
 	class_label: Mapped[str] = mapped_column(String(10))
@@ -38,9 +39,7 @@ class CelestialBody(Base):
 	def build_sdss_query(cls, limit: int, label: str, fields: list[str] | None = None) -> str:
 		target_fields = fields if fields else sorted(cls.SDSS_FIELD_REGISTRY.keys())
 		selection = ", ".join(
-			cls.SDSS_FIELD_REGISTRY[f]
-			for f in target_fields
-			if f in cls.SDSS_FIELD_REGISTRY
+			cls.SDSS_FIELD_REGISTRY[f] for f in target_fields if f in cls.SDSS_FIELD_REGISTRY
 		)
 
 		return f"""
@@ -55,6 +54,7 @@ class CelestialBody(Base):
 
 class CuratedCelestialBody(Base):
 	"""ML-ready curated record with optional enrichment from federated catalogs."""
+
 	__tablename__ = "curated_celestial_bodies"
 
 	class_label: Mapped[str] = mapped_column(String(10))

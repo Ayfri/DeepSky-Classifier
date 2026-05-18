@@ -2,7 +2,6 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-
 ALLOWED_CLASSES: set[str] = {"GALAXY", "QSO", "STAR"}
 
 OUTPUT_FORMATS: set[str] = {"csv", "parquet"}

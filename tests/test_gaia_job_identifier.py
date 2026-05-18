@@ -1,6 +1,6 @@
+from astropy.table import Table
 import pandas as pd
 import pytest
-from astropy.table import Table
 
 from src.etl.catalogs.gaia import (
 	_arcsec_to_degrees,

@@ -1,14 +1,13 @@
 import time
 
-import pandas as pd
-import pyvo.dal.tap as pyvo_tap
 from astropy.table import Table
+import pandas as pd
 from pyvo.dal import TAPService
+import pyvo.dal.tap as pyvo_tap
 from tqdm.auto import tqdm
 
 from src.etl.catalogs.base import CatalogExtractor
 from src.utils.logger import setup_logger
-
 
 logger = setup_logger(__name__)
 
@@ -115,7 +114,7 @@ def _select_nearest_matches(matches: pd.DataFrame) -> pd.DataFrame:
 def _iter_target_batches(upload: Table, batch_size: int) -> list[tuple[int, int, Table]]:
 	total_rows = len(upload)
 	return [
-		(index, start, upload[start:start + batch_size])
+		(index, start, upload[start : start + batch_size])
 		for index, start in enumerate(range(0, total_rows, batch_size), start=1)
 	]
 

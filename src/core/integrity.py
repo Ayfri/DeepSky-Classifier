@@ -3,7 +3,6 @@ from pathlib import Path
 
 from src.utils.logger import setup_logger
 
-
 logger = setup_logger(__name__)
 
 BLOCK_SIZE = 65536
@@ -28,7 +27,6 @@ def verify_integrity(filepath: Path, expected_sha256: str) -> bool:
 		return True
 
 	logger.error(
-		f"Integrity check failed for {filepath}: "
-		f"expected {expected_sha256}, got {computed}"
+		f"Integrity check failed for {filepath}: expected {expected_sha256}, got {computed}"
 	)
 	return False

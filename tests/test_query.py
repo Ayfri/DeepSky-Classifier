@@ -19,7 +19,9 @@ class TestBuildSDSSQuery:
 
 	def test_custom_fields(self):
 		query = CelestialBody.build_sdss_query(
-			limit=1, label="STAR", fields=["ra", "dec"],
+			limit=1,
+			label="STAR",
+			fields=["ra", "dec"],
 		)
 		assert "p.ra" in query
 		assert "p.dec" in query

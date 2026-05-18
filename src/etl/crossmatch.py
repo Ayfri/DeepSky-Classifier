@@ -1,9 +1,8 @@
-import pandas as pd
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+import pandas as pd
 
 from src.utils.logger import setup_logger
-
 
 logger = setup_logger(__name__)
 
@@ -97,11 +96,7 @@ def merge_catalogs(
 		merged.loc[matched_mask, secondary_payload.columns] = matched_rows.to_numpy()
 
 	merged["gaia_match_sep_arcsec"] = pd.NA
-	merged.loc[matched_mask, "gaia_match_sep_arcsec"] = separations.arcsec[
-		matched_mask,
-	]
+	merged.loc[matched_mask, "gaia_match_sep_arcsec"] = separations.arcsec[matched_mask,]
 
-	logger.info(
-		f"Cross-match complete: {len(primary)} primary rows -> {len(merged)} merged rows"
-	)
+	logger.info(f"Cross-match complete: {len(primary)} primary rows -> {len(merged)} merged rows")
 	return merged

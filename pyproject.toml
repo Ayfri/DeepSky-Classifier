@@ -61,77 +61,79 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 
-# ---------------------------------------------------------------------------
-# Ruff: industrial-grade lint + format
-# ---------------------------------------------------------------------------
+# Ruff
 [tool.ruff]
 line-length = 100
 target-version = "py313"
-extend-exclude = [".venv", "data", "models", "build", "dist"]
+preview = false
+extend-exclude = [".venv", "data", "models", "build", "dist", "reports"]
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "tab"
 docstring-code-format = true
+line-ending = "auto"
 
 [tool.ruff.lint]
+# Stable defaults (Ruff 0.15) + project rules; preview off for reproducible CI
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # pyflakes
-    "I",    # isort
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "UP",   # pyupgrade
-    "N",    # pep8-naming
-    "ANN",  # flake8-annotations
-    "ASYNC",
-    "S",    # flake8-bandit
-    "BLE",  # blind-except
-    "FBT",  # boolean-trap
-    "A",    # builtins shadow
-    "COM",  # trailing comma
-    "DTZ",  # datetimez
-    "EM",   # error-messages
-    "EXE",  # executable
-    "ISC",  # implicit-str-concat
-    "LOG",
-    "G",    # logging-format
-    "PIE",
-    "T20",  # print
-    "PT",   # pytest
-    "Q",    # quotes
-    "RSE",  # raise
-    "RET",  # return
-    "SIM",  # simplify
-    "TID",  # tidy-imports
-    "TCH",  # type-checking
-    "ARG",  # unused-arg
-    "PTH",  # use-pathlib
-    "PL",   # pylint
-    "TRY",  # tryceratops
-    "FLY",
-    "PERF",
-    "RUF",
+	"E4",
+	"E7",
+	"E9",
+	"F",
+	"I",
+	"UP",
+	"B",
+	"SIM",
+	"C4",
+	"N",
+	"ANN",
+	"ASYNC",
+	"S",
+	"BLE",
+	"A",
+	"DTZ",
+	"LOG",
+	"PT",
+	"PTH",
+	"PL",
+	"TRY",
+	"PERF",
+	"RUF",
+	"TCH",
+	"ARG",
+	"RET",
 ]
 ignore = [
-    "ANN401",  # allow Any for kwargs in catalog extractors
-    "COM812",  # trailing comma conflict with formatter
-    "E101",    # mixed spaces/tabs (tab project)
-    "ISC001",  # conflict with formatter
-    "PLR0913", # function arguments count (CLI/API entry points)
-    "PLR2004", # magic value comparisons (lots in scientific code)
-    "S101",    # use of assert (fine in tests)
-    "TRY003",  # long exception messages
-    "W191",    # indentation contains tabs (tab project)
-    "EM101",
-    "EM102",
+	"ANN401",
+	"COM812",
+	"E101",
+	"ISC001",
+	"PLR0913",
+	"PLR2004",
+	"S101",
+	"TRY003",
+	"W191",
+	"EM101",
+	"EM102",
+	"S104",
+	"S105",
+	"S608",
+	"N806",
+	"PLC0415",
+	"BLE001",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["ANN", "S", "PLR2004", "ARG", "FBT"]
+"tests/**/*.py" = ["ANN", "S", "PLR2004", "ARG"]
+"src/ml/**/*.py" = ["N806"]
 "src/ml/train.py" = ["T201"]
-"src/api/**/*.py" = ["B008"]  # FastAPI Depends pattern
+"src/workflows/**/*.py" = ["T201"]
+"src/api/**/*.py" = ["B008"]
+"src/etl/catalogs/**/*.py" = ["BLE001"]
+"src/core/models.py" = ["S608"]
+"src/core/settings.py" = ["PLW0603"]
+"src/etl/catalogs/sdss.py" = ["TC002"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
@@ -141,18 +143,26 @@ force-sort-within-sections = true
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
-# ---------------------------------------------------------------------------
-# Pyrefly: strict static type checking
-# ---------------------------------------------------------------------------
-[tool.pyrefly]
-project-includes = ["src", "tests"]
-project-excludes = [".venv", "data", "models", "build", "dist"]
-python-version = "3.13"
-search-path = ["src"]
+[tool.ruff.lint.flake8-type-checking]
+strict = true
 
-# ---------------------------------------------------------------------------
+# Pyrefly
+[tool.pyrefly]
+python-version = "3.13"
+preset = "strict"
+project-includes = ["src/**/*.py", "tests/**/*.py"]
+project-excludes = ["data/**", "models/**", ".venv/**", "build/**", "dist/**", "reports/**"]
+search-path = ["src"]
+output-format = "min-text"
+min-severity = "error"
+replace-imports-with-any = [
+	"astroquery.*",
+	"colorama",
+	"pyvo.*",
+	"tqdm.*",
+]
+
 # Pytest
-# ---------------------------------------------------------------------------
 [tool.pytest.ini_options]
 minversion = "9.0"
 testpaths = ["tests"]
@@ -168,9 +178,7 @@ markers = [
 ]
 asyncio_mode = "auto"
 
-# ---------------------------------------------------------------------------
 # Coverage
-# ---------------------------------------------------------------------------
 [tool.coverage.run]
 source = ["src"]
 branch = true

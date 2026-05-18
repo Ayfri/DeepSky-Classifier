@@ -4,7 +4,7 @@ from src.core.schemas import SDSSRawRecord
 from src.etl.validate import validate_dataframe
 
 
-def _valid_rows(n: int = 5) -> list[dict]:
+def _valid_rows(n: int = 5) -> list[dict[str, float | int | str]]:
 	return [
 		{
 			"class_label": "STAR",

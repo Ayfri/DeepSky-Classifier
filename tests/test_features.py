@@ -1,3 +1,5 @@
+from typing import Any
+
 import pandas as pd
 import pytest
 
@@ -5,7 +7,7 @@ from src.ml.features import BASELINE_FEATURES, GAIA_FEATURES, LABEL_COLUMN, sele
 
 
 def _make_df(n: int = 10, include_gaia: bool = False) -> pd.DataFrame:
-	data = {col: [float(j) for j in range(n)] for col in BASELINE_FEATURES}
+	data: dict[str, Any] = {col: [float(j) for j in range(n)] for col in BASELINE_FEATURES}
 	data[LABEL_COLUMN] = ["STAR"] * (n // 2) + ["GALAXY"] * (n - n // 2)
 
 	if include_gaia:

@@ -4,7 +4,7 @@ import pytest
 from src.core.schemas import CuratedFeatureRecord, SDSSRawRecord
 
 
-def _valid_sdss_record(**overrides: object) -> dict:
+def _valid_sdss_record(**overrides: float | int | str) -> dict[str, float | int | str]:
 	base = {
 		"class_label": "STAR",
 		"dec": 45.0,

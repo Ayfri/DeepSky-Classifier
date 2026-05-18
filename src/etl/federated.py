@@ -1,7 +1,7 @@
 """Federated pipeline: extracts from multiple catalogs, cross-matches, and curates."""
+
 from pathlib import Path
 
-import pandas as pd
 from tqdm.auto import tqdm
 
 from src.core.config import PipelineConfig
@@ -12,7 +12,6 @@ from src.etl.crossmatch import merge_catalogs
 from src.etl.persist import persist_dataframe
 from src.etl.validate import validate_dataframe
 from src.utils.logger import setup_logger
-
 
 logger = setup_logger(__name__)
 
@@ -83,8 +82,7 @@ def run_federated_pipeline(
 				)
 				curated = merge_catalogs(curated, gaia_df, on="objid")
 				logger.info(
-					f"Gaia enrichment: "
-					f"{curated['gaia_source_id'].notna().sum()} rows matched"
+					f"Gaia enrichment: {curated['gaia_source_id'].notna().sum()} rows matched"
 				)
 		else:
 			progress.set_postfix_str("gaia skipped")
@@ -94,7 +92,8 @@ def run_federated_pipeline(
 
 		# --- Validate curated contract ---
 		curated_valid, curated_quarantine = validate_dataframe(
-			curated, CuratedFeatureRecord,
+			curated,
+			CuratedFeatureRecord,
 		)
 
 		if not curated_quarantine.empty:

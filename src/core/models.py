@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from sqlalchemy import Float, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -22,7 +24,7 @@ class CelestialBody(Base):
 	u: Mapped[float] = mapped_column(Float)
 	z_mag: Mapped[float] = mapped_column(Float)
 
-	SDSS_FIELD_REGISTRY: dict[str, str] = {
+	SDSS_FIELD_REGISTRY: ClassVar[dict[str, str]] = {
 		"class_label": "s.class AS class_label",
 		"dec": "p.dec",
 		"g": "p.g",

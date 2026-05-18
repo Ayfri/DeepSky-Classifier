@@ -19,7 +19,7 @@ def get_engine(settings: Settings | None = None) -> Engine:
 	cfg = settings or get_settings()
 	url = cfg.effective_db_url
 
-	engine_kwargs: dict = {"echo": False}
+	engine_kwargs: dict[str, object] = {"echo": False}
 	if url.startswith("postgresql"):
 		engine_kwargs["pool_size"] = cfg.db_pool_size
 		engine_kwargs["max_overflow"] = cfg.db_max_overflow
@@ -59,7 +59,8 @@ def ping(engine: Engine) -> bool:
 	try:
 		with engine.connect() as conn:
 			conn.execute(text("SELECT 1"))
-		return True
 	except Exception as exc:
 		logger.warning(f"Database ping failed: {exc}")
 		return False
+	else:
+		return True

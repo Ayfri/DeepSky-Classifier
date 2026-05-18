@@ -10,7 +10,7 @@ BLOCK_SIZE = 65536
 
 def compute_sha256(filepath: Path) -> str:
 	h = hashlib.sha256()
-	with open(filepath, "rb") as f:
+	with filepath.open("rb") as f:
 		for chunk in iter(lambda: f.read(BLOCK_SIZE), b""):
 			h.update(chunk)
 	return h.hexdigest()

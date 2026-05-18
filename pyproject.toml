@@ -8,32 +8,32 @@ license = { file = "LICENSE" }
 authors = [{ name = "Pierre Ayfri", email = "pierre.ayfri@gmail.com" }]
 keywords = ["astronomy", "machine-learning", "etl", "fastapi", "scikit-learn"]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-    "Programming Language :: Python :: 3.13",
-    "Topic :: Scientific/Engineering :: Astronomy",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+	"Development Status :: 4 - Beta",
+	"License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+	"Programming Language :: Python :: 3.13",
+	"Topic :: Scientific/Engineering :: Astronomy",
+	"Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "alembic>=1.18.4",
-    "astropy>=7.2.0",
-    "astroquery>=0.4.11",
-    "colorama>=0.4.6",
-    "fastapi>=0.135.3",
-    "httpx>=0.28.1",
-    "joblib>=1.5.3",
-    "orjson>=3.11.8",
-    "pandas>=3.0.2",
-    "prefect>=3.6.25",
-    "psycopg[binary,pool]>=3.2.10",
-    "pyarrow>=23.0.1",
-    "pydantic>=2.12.5",
-    "pydantic-settings>=2.6.0",
-    "pyvo>=1.8.1",
-    "scikit-learn>=1.8.0",
-    "sqlalchemy>=2.0.49",
-    "tqdm>=4.67.3",
-    "uvicorn[standard]>=0.44.0",
+	"alembic>=1.18.4",
+	"astropy>=7.2.0",
+	"astroquery>=0.4.11",
+	"colorama>=0.4.6",
+	"fastapi>=0.135.3",
+	"httpx>=0.28.1",
+	"joblib>=1.5.3",
+	"orjson>=3.11.8",
+	"pandas>=3.0.2",
+	"prefect>=3.6.25",
+	"psycopg[binary,pool]>=3.2.10",
+	"pyarrow>=23.0.1",
+	"pydantic>=2.12.5",
+	"pydantic-settings>=2.6.0",
+	"pyvo>=1.8.1",
+	"scikit-learn>=1.8.0",
+	"sqlalchemy>=2.0.49",
+	"tqdm>=4.67.3",
+	"uvicorn[standard]>=0.44.0",
 ]
 
 [project.urls]
@@ -47,11 +47,11 @@ deepsky-train = "src.ml.train:main"
 
 [dependency-groups]
 dev = [
-    "pyrefly>=1.0.0",
-    "pytest>=9.0.3",
-    "pytest-asyncio>=1.0.0",
-    "pytest-cov>=6.0.0",
-    "ruff>=0.15.13",
+	"pyrefly>=1.0.0",
+	"pytest>=9.0.3",
+	"pytest-asyncio>=1.0.0",
+	"pytest-cov>=6.0.0",
+	"ruff>=0.15.13",
 ]
 
 [build-system]
@@ -63,132 +63,122 @@ packages = ["src"]
 
 # Ruff
 [tool.ruff]
+extend-exclude = [".venv", "build", "data", "dist", "models", "reports"]
 line-length = 100
-target-version = "py313"
 preview = false
-extend-exclude = [".venv", "data", "models", "build", "dist", "reports"]
+target-version = "py313"
 
 [tool.ruff.format]
-quote-style = "double"
-indent-style = "tab"
 docstring-code-format = true
+indent-style = "tab"
 line-ending = "auto"
+quote-style = "double"
 
 [tool.ruff.lint]
-# Stable defaults (Ruff 0.15) + project rules; preview off for reproducible CI
 select = [
+	"A",
+	"ANN",
+	"ARG",
+	"ASYNC",
+	"B",
+	"BLE",
+	"C4",
+	"DTZ",
 	"E4",
 	"E7",
 	"E9",
 	"F",
 	"I",
-	"UP",
-	"B",
-	"SIM",
-	"C4",
-	"N",
-	"ANN",
-	"ASYNC",
-	"S",
-	"BLE",
-	"A",
-	"DTZ",
 	"LOG",
+	"N",
+	"PERF",
+	"PIE",
 	"PT",
 	"PTH",
-	"PL",
-	"TRY",
-	"PERF",
-	"RUF",
-	"TCH",
-	"ARG",
 	"RET",
+	"RUF",
+	"S",
+	"SIM",
+	"TCH",
+	"TRY",
+	"UP",
 ]
 ignore = [
 	"ANN401",
+	"BLE001",
 	"COM812",
 	"E101",
 	"ISC001",
-	"PLR0913",
-	"PLR2004",
+	"N806",
+	"PLC0415",
 	"S101",
-	"TRY003",
-	"W191",
-	"EM101",
-	"EM102",
 	"S104",
 	"S105",
 	"S608",
-	"N806",
-	"PLC0415",
-	"BLE001",
+	"TRY003",
+	"W191",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["ANN", "S", "PLR2004", "ARG"]
+"src/api/**/*.py" = ["B008"]
+"src/core/models.py" = ["S608"]
+"src/etl/catalogs/**/*.py" = ["BLE001"]
 "src/ml/**/*.py" = ["N806"]
 "src/ml/train.py" = ["T201"]
 "src/workflows/**/*.py" = ["T201"]
-"src/api/**/*.py" = ["B008"]
-"src/etl/catalogs/**/*.py" = ["BLE001"]
-"src/core/models.py" = ["S608"]
-"src/core/settings.py" = ["PLW0603"]
-"src/etl/catalogs/sdss.py" = ["TC002"]
-
-[tool.ruff.lint.isort]
-known-first-party = ["src"]
-combine-as-imports = true
-force-sort-within-sections = true
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
+"tests/**/*.py" = ["ANN", "ARG", "S"]
 
 [tool.ruff.lint.flake8-type-checking]
 strict = true
 
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-sort-within-sections = true
+known-first-party = ["src"]
+
 # Pyrefly
 [tool.pyrefly]
-python-version = "3.13"
-preset = "strict"
-project-includes = ["src/**/*.py", "tests/**/*.py"]
-project-excludes = ["data/**", "models/**", ".venv/**", "build/**", "dist/**", "reports/**"]
-search-path = ["src"]
-output-format = "min-text"
 min-severity = "error"
+output-format = "min-text"
+preset = "strict"
+project-excludes = [".venv/**", "build/**", "data/**", "dist/**", "models/**", "reports/**"]
+project-includes = ["src/**/*.py", "tests/**/*.py"]
+python-version = "3.13"
 replace-imports-with-any = [
 	"astroquery.*",
 	"colorama",
 	"pyvo.*",
 	"tqdm.*",
 ]
+search-path = ["src"]
 
 # Pytest
 [tool.pytest.ini_options]
-minversion = "9.0"
-testpaths = ["tests"]
 addopts = [
-    "-ra",
-    "--strict-markers",
-    "--strict-config",
-    "--tb=short",
-]
-markers = [
-    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
-    "slow: marks tests as slow",
+	"--strict-config",
+	"--strict-markers",
+	"--tb=short",
+	"-ra",
 ]
 asyncio_mode = "auto"
+markers = [
+	"integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+	"slow: marks tests as slow",
+]
+minversion = "9.0"
+testpaths = ["tests"]
 
 # Coverage
-[tool.coverage.run]
-source = ["src"]
-branch = true
-omit = ["src/workflows/*", "*/__init__.py"]
-
 [tool.coverage.report]
+exclude_lines = [
+	"if __name__ == .__main__.:",
+	"pragma: no cover",
+	"raise NotImplementedError",
+]
 show_missing = true
 skip_covered = false
-exclude_lines = [
-    "pragma: no cover",
-    "if __name__ == .__main__.:",
-    "raise NotImplementedError",
-]
+
+[tool.coverage.run]
+branch = true
+omit = ["*/__init__.py", "src/workflows/*"]
+source = ["src"]

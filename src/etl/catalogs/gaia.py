@@ -1,4 +1,5 @@
 import time
+from typing import override
 
 from astropy.table import Table
 import pandas as pd
@@ -18,7 +19,7 @@ DEFAULT_BATCH_SIZE = 250
 DEFAULT_MAX_SEPARATION_ARCSEC = 1.5
 UPLOAD_TABLE_NAME = "sdss_targets"
 
-pyvo_tap.DEFAULT_JOB_POLL_TIMEOUT = GAIA_JOB_POLL_TIMEOUT_SECONDS
+pyvo_tap.DEFAULT_JOB_POLL_TIMEOUT = int(GAIA_JOB_POLL_TIMEOUT_SECONDS)
 
 GAIA_SOURCE_QUERY = """
 SELECT TOP {limit}
@@ -122,9 +123,10 @@ def _iter_target_batches(upload: Table, batch_size: int) -> list[tuple[int, int,
 class GaiaExtractor(CatalogExtractor):
 	catalog_name = "gaia"
 
-	def __init__(self, tap_url: str = GAIA_TAP_URL):
+	def __init__(self, tap_url: str = GAIA_TAP_URL) -> None:
 		self.service = TAPService(tap_url)
 
+	@override
 	def extract(
 		self,
 		batch_size: int = DEFAULT_BATCH_SIZE,
@@ -232,8 +234,8 @@ class GaiaExtractor(CatalogExtractor):
 			results = job.fetch_result().to_table()
 			df = results.to_pandas()
 			logger.info(f"[Gaia] Retrieved {len(df)} records")
-			return df
-
-		except Exception as exc:
-			logger.error(f"[Gaia] TAP extraction failed: {exc}")
+		except Exception:
+			logger.exception("[Gaia] TAP extraction failed")
 			return pd.DataFrame()
+		else:
+			return df

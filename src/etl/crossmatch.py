@@ -1,3 +1,5 @@
+from typing import Literal
+
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 import pandas as pd
@@ -7,6 +9,8 @@ from src.utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 DEFAULT_MAX_SEPARATION_ARCSEC = 1.5
+
+MergeHow = Literal["cross", "inner", "left", "left_anti", "outer", "right", "right_anti"]
 
 
 def _prefix_secondary_columns(
@@ -25,7 +29,7 @@ def merge_catalogs(
 	primary: pd.DataFrame,
 	secondary: pd.DataFrame,
 	on: str = "objid",
-	how: str = "left",
+	how: MergeHow = "left",
 	max_sep_arcsec: float = DEFAULT_MAX_SEPARATION_ARCSEC,
 ) -> pd.DataFrame:
 	"""Cross-match catalog rows by sky position and attach Gaia features."""
@@ -46,7 +50,7 @@ def merge_catalogs(
 			),
 			None,
 		)
-		match_count = int(merged[match_column].notna().sum()) if match_column else 0
+		match_count = merged[match_column].notna().sum() if match_column else 0
 		logger.info(
 			f"Cross-match complete: {len(primary)} primary rows -> {len(merged)} merged rows "
 			f"({match_count} key matches on {on})"

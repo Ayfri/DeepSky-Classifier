@@ -1,3 +1,5 @@
+from typing import override
+
 from astropy.table import Table
 from astroquery.sdss import SDSS
 import pandas as pd
@@ -13,9 +15,10 @@ logger = setup_logger(__name__)
 class SDSSExtractor(CatalogExtractor):
 	catalog_name = "sdss"
 
-	def __init__(self, data_release: int = 17):
+	def __init__(self, data_release: int = 17) -> None:
 		self.data_release = data_release
 
+	@override
 	def extract(
 		self,
 		limit_per_class: int = 2000,
@@ -55,6 +58,6 @@ class SDSSExtractor(CatalogExtractor):
 				return result.to_pandas()
 			logger.warning(f"[SDSS] Class {label} returned no results")
 			return pd.DataFrame()
-		except Exception as exc:
-			logger.error(f"[SDSS] Extraction error for {label}: {exc}")
+		except Exception:
+			logger.exception("[SDSS] Extraction error for %s", label)
 			return pd.DataFrame()

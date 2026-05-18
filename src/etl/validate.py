@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import pandas as pd
 from pydantic import BaseModel, ValidationError
 from tqdm.auto import tqdm
@@ -12,8 +14,8 @@ def validate_dataframe(
 	schema: type[BaseModel],
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
 	"""Returns (valid_df, quarantine_df) after row-level schema validation."""
-	quarantine_records: list[dict] = []
-	valid_records: list[dict] = []
+	quarantine_records: list[dict[str, Any]] = []
+	valid_records: list[dict[str, Any]] = []
 
 	records = df.to_dict("records")
 	for record in tqdm(
@@ -27,8 +29,9 @@ def validate_dataframe(
 			validated = schema.model_validate(record)
 			valid_records.append(validated.model_dump())
 		except ValidationError as exc:
-			record["_validation_errors"] = str(exc)
-			quarantine_records.append(record)
+			quarantine_row = cast("dict[str, Any]", dict(record))
+			quarantine_row["_validation_errors"] = str(exc)
+			quarantine_records.append(quarantine_row)
 
 	logger.info(
 		f"Validation complete: {len(valid_records)} valid, {len(quarantine_records)} quarantined"

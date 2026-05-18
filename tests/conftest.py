@@ -1,3 +1,4 @@
+from collections.abc import Generator
 import hashlib
 import json
 from pathlib import Path
@@ -68,19 +69,21 @@ def tmp_model_dir(tmp_path: Path, trained_model: RandomForestClassifier) -> Path
 
 
 @pytest.fixture
-def api_client(tmp_model_dir: Path) -> TestClient:
+def api_client(tmp_model_dir: Path) -> Generator[TestClient]:
 	"""TestClient with the model loaded from tmp_model_dir."""
 	from src.api.main import _load_model_artefacts, app
 	import src.core.settings as settings_module
 	from src.core.settings import Settings
+	from tests.api._helpers import fastapi_app
 
 	settings = Settings(model_dir=tmp_model_dir)  # type: ignore[call-arg]
 	settings_module._settings = settings
 
 	clf, meta = _load_model_artefacts(tmp_model_dir)
 	with TestClient(app) as client:
-		client.app.state.model = clf
-		client.app.state.metadata = meta
+		app_state = fastapi_app(client).state
+		app_state.model = clf
+		app_state.metadata = meta
 		yield client
 
 	settings_module._settings = None

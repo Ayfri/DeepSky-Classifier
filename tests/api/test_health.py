@@ -1,13 +1,15 @@
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from tests.api._helpers import fastapi_app
 
 
 def _bare_client() -> TestClient:
 	"""Client with NO model loaded — simulates cold-start failure."""
 	client = TestClient(app, raise_server_exceptions=False)
-	client.app.state.model = None
-	client.app.state.metadata = None
+	app_state = fastapi_app(client).state
+	app_state.model = None
+	app_state.metadata = None
 	return client
 
 

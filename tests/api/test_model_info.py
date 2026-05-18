@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+from tests.api._helpers import fastapi_app
+
 
 class TestModelInfoEndpoint:
 	def test_returns_200(self, api_client: TestClient):
@@ -26,7 +28,8 @@ class TestModelInfoEndpoint:
 		from src.api.main import app
 
 		with TestClient(app, raise_server_exceptions=False) as client:
-			client.app.state.model = None
-			client.app.state.metadata = None
+			app_state = fastapi_app(client).state
+			app_state.model = None
+			app_state.metadata = None
 			resp = client.get("/model/info")
 		assert resp.status_code == 503

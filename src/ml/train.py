@@ -1,6 +1,6 @@
+from datetime import UTC, datetime
 import hashlib
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +12,6 @@ from sklearn.model_selection import train_test_split
 from src.ml.evaluate import evaluate_model
 from src.ml.features import LABEL_COLUMN, select_features
 from src.utils.logger import setup_logger
-
 
 logger = setup_logger(__name__)
 
@@ -60,7 +59,8 @@ def train_classifier(
 	labels = sorted(y.unique().tolist())
 
 	X_train, X_test, y_train, y_test = train_test_split(
-		X, y,
+		X,
+		y,
 		test_size=test_size,
 		random_state=random_state,
 		stratify=y,
@@ -102,7 +102,7 @@ def train_classifier(
 		"n_estimators": n_estimators,
 		"random_state": random_state,
 		"test_size": test_size,
-		"timestamp": datetime.now(timezone.utc).isoformat(),
+		"timestamp": datetime.now(UTC).isoformat(),
 		"train_rows": len(X_train),
 		"test_rows": len(X_test),
 	}
@@ -114,8 +114,15 @@ def train_classifier(
 	return model_path
 
 
-if __name__ == "__main__":
+def main() -> None:
+	"""CLI entry point: train classifier on curated dataset."""
 	import sys
 
-	data = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("data/raw/sdss/curated_features.parquet")
+	data = (
+		Path(sys.argv[1]) if len(sys.argv) > 1 else Path("data/raw/sdss/curated_features.parquet")
+	)
 	train_classifier(data_path=data)
+
+
+if __name__ == "__main__":
+	main()

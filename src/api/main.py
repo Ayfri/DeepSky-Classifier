@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 import json
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI
 import joblib
@@ -14,7 +15,7 @@ from src.utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 
-def _load_model_artefacts(model_dir: Path) -> tuple[object, dict]:
+def _load_model_artefacts(model_dir: Path) -> tuple[object, dict[str, Any]]:
 	"""Load classifier and metadata from the model directory.
 
 	Both files must exist; if either is missing the application refuses

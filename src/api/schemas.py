@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -49,4 +51,4 @@ class ModelInfo(BaseModel):
 	n_estimators: int | None = None
 	trained_at: str | None = None
 	dataset_sha256: str | None = None
-	metrics: dict | None = None
+	metrics: dict[str, Any] | None = None

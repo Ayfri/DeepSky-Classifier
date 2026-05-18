@@ -45,8 +45,13 @@ jobs:
       - name: Install all dependencies
         run: uv sync --group dev
 
-      - name: Pyrefly
+      - name: Pyrefly check
         run: uv run pyrefly check
+
+      - name: Pyrefly typing report
+        run: |
+          mkdir -p reports
+          uv run pyrefly report > reports/pyrefly-typing-report.json
 
   test:
     name: Unit Tests

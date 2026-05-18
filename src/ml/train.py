@@ -23,7 +23,7 @@ DEFAULT_RANDOM_STATE = 42
 
 def _sha256_file(path: Path) -> str:
 	h = hashlib.sha256()
-	with open(path, "rb") as f:
+	with path.open("rb") as f:
 		for chunk in iter(lambda: f.read(65536), b""):
 			h.update(chunk)
 	return h.hexdigest()
@@ -80,7 +80,7 @@ def train_classifier(
 	clf.fit(X_train, y_train)
 
 	y_pred = clf.predict(X_test)
-	metrics = evaluate_model(y_test, y_pred, labels=labels)
+	metrics = evaluate_model(y_test, pd.Series(y_pred, index=y_test.index), labels=labels)
 
 	# --- Persist model artifact ---
 	model_path = output_dir / "rf_classifier.joblib"

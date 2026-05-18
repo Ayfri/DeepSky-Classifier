@@ -1,5 +1,6 @@
 import logging
 import sys
+from typing import ClassVar, override
 
 from colorama import Fore, Style, init
 
@@ -9,7 +10,7 @@ init(autoreset=True)
 class DeepSkyFormatter(logging.Formatter):
 	"""Colored log formatter: [timestamp] | LEVEL | module | message."""
 
-	LEVEL_COLORS: dict[int, str] = {
+	LEVEL_COLORS: ClassVar[dict[int, str]] = {
 		logging.DEBUG: Fore.CYAN,
 		logging.INFO: Fore.GREEN,
 		logging.WARNING: Fore.YELLOW,
@@ -17,6 +18,7 @@ class DeepSkyFormatter(logging.Formatter):
 		logging.CRITICAL: Fore.RED + Style.BRIGHT,
 	}
 
+	@override
 	def format(self, record: logging.LogRecord) -> str:
 		level_color = self.LEVEL_COLORS.get(record.levelno, "")
 		dim = Style.DIM

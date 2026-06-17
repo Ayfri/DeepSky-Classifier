@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 
 from src.ml.evaluate import evaluate_model
 from src.ml.features import LABEL_COLUMN, select_features
+from src.ml.plots import plot_confusion_matrix, plot_feature_importance, plot_roc_curves
 from src.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -81,6 +82,17 @@ def train_classifier(
 
 	y_pred = clf.predict(X_test)
 	metrics = evaluate_model(y_test, pd.Series(y_pred, index=y_test.index), labels=labels)
+
+	# --- Save visualisation exports ---
+	figures_dir = Path("reports/figures")
+	plot_confusion_matrix(metrics["confusion_matrix"], labels, figures_dir / "confusion_matrix.png")
+	y_proba = clf.predict_proba(X_test)
+	plot_roc_curves(y_test, y_proba, labels, figures_dir / "roc_curves.png")
+	plot_feature_importance(
+		clf.feature_importances_,
+		[str(c) for c in X.columns],
+		figures_dir / "feature_importance.png",
+	)
 
 	# --- Persist model artifact ---
 	model_path = output_dir / "rf_classifier.joblib"

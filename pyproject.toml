@@ -47,11 +47,13 @@ deepsky-train = "src.ml.train:main"
 
 [dependency-groups]
 dev = [
+	"matplotlib>=3.11.0",
 	"pyrefly>=1.0.0",
 	"pytest>=9.0.3",
 	"pytest-asyncio>=1.0.0",
 	"pytest-cov>=6.0.0",
 	"ruff>=0.15.13",
+	"seaborn>=0.13.2",
 ]
 
 [build-system]
@@ -147,7 +149,9 @@ python-version = "3.13"
 replace-imports-with-any = [
 	"astroquery.*",
 	"colorama",
+	"matplotlib.*",
 	"pyvo.*",
+	"seaborn",
 	"tqdm.*",
 ]
 search-path = ["src"]

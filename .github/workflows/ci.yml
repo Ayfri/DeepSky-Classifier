@@ -98,6 +98,15 @@ jobs:
       - name: Install all dependencies
         run: uv sync --group dev
 
+      - name: Run Alembic migrations
+        env:
+          DEEPSKY_DB_HOST: localhost
+          DEEPSKY_DB_PORT: 5432
+          DEEPSKY_DB_NAME: deepsky
+          DEEPSKY_DB_USER: deepsky
+          DEEPSKY_DB_PASSWORD: deepsky
+        run: uv run alembic upgrade head
+
       - name: Run integration tests
         env:
           DEEPSKY_DB_HOST: localhost

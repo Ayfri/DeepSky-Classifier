@@ -1,7 +1,7 @@
 """Integration tests — require a live Postgres instance (DEEPSKY_DB_* env vars)."""
 
-import os
 from collections.abc import Generator
+import os
 
 import pytest
 from sqlalchemy import Engine, inspect, text

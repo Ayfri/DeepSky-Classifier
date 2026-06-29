@@ -42,6 +42,7 @@ Repository = "https://github.com/Ayfri/deepsky-classifier"
 
 [project.scripts]
 deepsky-api = "src.api.main:run"
+deepsky-optimize = "src.ml.optimize:main"
 deepsky-pipeline = "src.workflows.pipeline:deepsky_pipeline"
 deepsky-train = "src.ml.train:main"
 
@@ -125,7 +126,7 @@ ignore = [
 "src/api/**/*.py" = ["B008"]
 "src/core/models.py" = ["S608"]
 "src/etl/catalogs/**/*.py" = ["BLE001"]
-"src/ml/**/*.py" = ["N806"]
+"src/ml/**/*.py" = ["N803", "N806"]
 "src/ml/train.py" = ["T201"]
 "src/workflows/**/*.py" = ["T201"]
 "tests/**/*.py" = ["ANN", "ARG", "S"]

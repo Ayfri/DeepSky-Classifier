@@ -2,9 +2,11 @@ import time
 from typing import override
 
 from astropy.table import Table
+import httpx
 import pandas as pd
 from pyvo.dal import TAPService
 import pyvo.dal.tap as pyvo_tap
+import requests
 from tqdm.auto import tqdm
 
 from src.etl.catalogs.base import CatalogExtractor
@@ -13,6 +15,7 @@ from src.utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 GAIA_TAP_URL = "https://gea.esac.esa.int/tap-server/tap"
+GAIA_LOGIN_URL = "https://gea.esac.esa.int/tap-server/login"
 GAIA_JOB_POLL_TIMEOUT_SECONDS = 30.0
 GAIA_JOB_WAIT_TIMEOUT_SECONDS = 60.0
 DEFAULT_BATCH_SIZE = 250
@@ -56,6 +59,23 @@ WHERE gaia.parallax IS NOT NULL
 
 JOB_POLL_INTERVAL_SECONDS = 5
 JOB_TERMINAL_PHASES = frozenset({"ABORTED", "COMPLETED", "ERROR"})
+FETCH_RESULT_MAX_ATTEMPTS = 3
+FETCH_RESULT_RETRY_SECONDS = 5
+
+
+def _fetch_result_with_retry(job: object) -> Table:
+	"""Retry ``fetch_result`` since long-poll connections occasionally drop mid-request."""
+	last_exc: Exception | None = None
+	for attempt in range(1, FETCH_RESULT_MAX_ATTEMPTS + 1):
+		try:
+			return job.fetch_result().to_table()  # type: ignore[attr-defined]
+		except Exception as exc:
+			last_exc = exc
+			if attempt < FETCH_RESULT_MAX_ATTEMPTS:
+				logger.warning(f"[Gaia] fetch_result attempt {attempt} failed: {exc}")
+				time.sleep(FETCH_RESULT_RETRY_SECONDS)
+
+	raise last_exc  # type: ignore[misc]
 
 
 def _get_job_identifier(job: object) -> str:
@@ -72,6 +92,27 @@ def _get_job_identifier(job: object) -> str:
 
 def _arcsec_to_degrees(value: float) -> float:
 	return value / 3600.0
+
+
+def _create_authenticated_session(username: str, password: str) -> requests.Session:
+	"""Log in to the Gaia archive to raise the anonymous-user upload quota.
+
+	The login POST itself uses httpx; the resulting cookies are bridged onto a
+	``requests.Session`` because pyvo's ``TAPService`` hardcodes requests-specific
+	behaviour internally (``stream=True``, ``requests.RequestException``).
+	"""
+	with httpx.Client() as client:
+		response = client.post(GAIA_LOGIN_URL, data={"username": username, "password": password})
+		response.raise_for_status()
+		cookies = dict(response.cookies)
+
+	if not cookies:
+		raise RuntimeError("Gaia login did not return a session cookie")
+
+	session = requests.Session()
+	session.cookies.update(cookies)
+	logger.info(f"[Gaia] Authenticated as {username!r}")
+	return session
 
 
 def _build_target_query(
@@ -123,8 +164,16 @@ def _iter_target_batches(upload: Table, batch_size: int) -> list[tuple[int, int,
 class GaiaExtractor(CatalogExtractor):
 	catalog_name = "gaia"
 
-	def __init__(self, tap_url: str = GAIA_TAP_URL) -> None:
-		self.service = TAPService(tap_url)
+	def __init__(
+		self,
+		tap_url: str = GAIA_TAP_URL,
+		username: str | None = None,
+		password: str | None = None,
+	) -> None:
+		session = (
+			_create_authenticated_session(username, password) if username and password else None
+		)
+		self.service = TAPService(tap_url, session=session)
 
 	@override
 	def extract(
@@ -231,8 +280,8 @@ class GaiaExtractor(CatalogExtractor):
 				logger.error(f"[Gaia] Job ended with phase: {current_phase}")
 				return pd.DataFrame()
 
-			results = job.fetch_result().to_table()
-			df = results.to_pandas()
+			table = _fetch_result_with_retry(job)
+			df = table.to_pandas()
 			logger.info(f"[Gaia] Retrieved {len(df)} records")
 		except Exception:
 			logger.exception("[Gaia] TAP extraction failed")

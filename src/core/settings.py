@@ -36,6 +36,10 @@ class Settings(BaseSettings):
 	# Model artefacts
 	model_dir: Path = Field(default=Path("models"))
 
+	# Gaia archive (authenticated TAP access, raises the anonymous upload quota)
+	gaia_username: str | None = Field(default=None)
+	gaia_password: str | None = Field(default=None)
+
 	# API
 	api_host: str = Field(default="0.0.0.0")
 	api_port: int = Field(default=8000, ge=1, le=65535)

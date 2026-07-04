@@ -6,6 +6,7 @@ from tqdm.auto import tqdm
 
 from src.core.config import PipelineConfig
 from src.core.schemas import CuratedFeatureRecord, SDSSRawRecord
+from src.core.settings import get_settings
 from src.etl.catalogs.gaia import GaiaExtractor
 from src.etl.catalogs.sdss import SDSSExtractor
 from src.etl.crossmatch import merge_catalogs
@@ -69,7 +70,8 @@ def run_federated_pipeline(
 
 		# --- Enrich with Gaia astrometry ---
 		if enrich_gaia:
-			gaia = GaiaExtractor()
+			settings = get_settings()
+			gaia = GaiaExtractor(username=settings.gaia_username, password=settings.gaia_password)
 			gaia_df = gaia.extract(targets=valid_sdss)
 			progress.set_postfix_str("gaia extracted")
 			progress.update(1)

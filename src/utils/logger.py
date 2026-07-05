@@ -27,7 +27,14 @@ class DeepSkyFormatter(logging.Formatter):
 		date_str = f"{dim}[{self.formatTime(record, self.datefmt)}]{reset}"
 		level_str = f"{level_color}{record.levelname:<8}{reset}"
 		name_str = f"{Fore.MAGENTA}{record.name}{reset}"
-		return f"{date_str} [{level_str}] [{name_str:<30}] {record.getMessage()}"
+		line = f"{date_str} [{level_str}] [{name_str:<30}] {record.getMessage()}"
+
+		if record.exc_info:
+			line = f"{line}\n{self.formatException(record.exc_info)}"
+		if record.stack_info:
+			line = f"{line}\n{self.formatStack(record.stack_info)}"
+
+		return line
 
 
 def setup_logger(name: str = "deepsky") -> logging.Logger:

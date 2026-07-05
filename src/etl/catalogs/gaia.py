@@ -1,3 +1,4 @@
+from pathlib import Path
 import time
 from typing import override
 
@@ -16,6 +17,7 @@ logger = setup_logger(__name__)
 
 GAIA_TAP_URL = "https://gea.esac.esa.int/tap-server/tap"
 GAIA_LOGIN_URL = "https://gea.esac.esa.int/tap-server/login"
+GAIA_LOGIN_TIMEOUT_SECONDS = 30.0
 GAIA_JOB_POLL_TIMEOUT_SECONDS = 30.0
 GAIA_JOB_WAIT_TIMEOUT_SECONDS = 60.0
 DEFAULT_BATCH_SIZE = 250
@@ -101,7 +103,7 @@ def _create_authenticated_session(username: str, password: str) -> requests.Sess
 	``requests.Session`` because pyvo's ``TAPService`` hardcodes requests-specific
 	behaviour internally (``stream=True``, ``requests.RequestException``).
 	"""
-	with httpx.Client() as client:
+	with httpx.Client(timeout=GAIA_LOGIN_TIMEOUT_SECONDS) as client:
 		response = client.post(GAIA_LOGIN_URL, data={"username": username, "password": password})
 		response.raise_for_status()
 		cookies = dict(response.cookies)
@@ -182,6 +184,7 @@ class GaiaExtractor(CatalogExtractor):
 		limit: int = 10000,
 		targets: pd.DataFrame | None = None,
 		max_sep_arcsec: float = DEFAULT_MAX_SEPARATION_ARCSEC,
+		checkpoint_dir: Path | None = None,
 		**kwargs: object,
 	) -> pd.DataFrame:
 		if targets is not None:
@@ -189,17 +192,23 @@ class GaiaExtractor(CatalogExtractor):
 				targets,
 				batch_size=batch_size,
 				max_sep_arcsec=max_sep_arcsec,
+				checkpoint_dir=checkpoint_dir,
 			)
 
 		query = GAIA_SOURCE_QUERY.format(limit=limit)
 		logger.info(f"[Gaia] Submitting async TAP job (limit={limit})")
-		return self._run_query(query)
+		try:
+			return self._run_query(query)
+		except Exception:
+			logger.exception("[Gaia] TAP extraction failed")
+			return pd.DataFrame()
 
 	def _extract_for_targets(
 		self,
 		targets: pd.DataFrame,
 		batch_size: int,
 		max_sep_arcsec: float,
+		checkpoint_dir: Path | None = None,
 	) -> pd.DataFrame:
 		upload = _prepare_target_upload(targets)
 		if len(upload) == 0:
@@ -215,6 +224,9 @@ class GaiaExtractor(CatalogExtractor):
 			f"[Gaia] Querying {len(upload)} SDSS targets in {len(batches)} batches "
 			f"(batch_size={batch_size}, max_sep_arcsec={max_sep_arcsec})"
 		)
+		if checkpoint_dir:
+			checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
 		collected: list[pd.DataFrame] = []
 		with tqdm(
 			total=len(batches),
@@ -227,11 +239,32 @@ class GaiaExtractor(CatalogExtractor):
 				bar.set_postfix_str(
 					f"targets={start + 1}-{end}/{len(upload)}",
 				)
-				df = self._run_query(
-					query,
-					job_label=f"[Gaia] TAP job {batch_index}/{len(batches)}",
-					uploads={UPLOAD_TABLE_NAME: batch_upload},
+				checkpoint_path = (
+					checkpoint_dir / f"batch_{batch_index:03d}.parquet" if checkpoint_dir else None
 				)
+				if checkpoint_path and checkpoint_path.exists():
+					df = pd.read_parquet(checkpoint_path)
+					logger.info(
+						f"[Gaia] Batch {batch_index}/{len(batches)} resumed from checkpoint "
+						f"({len(df)} rows)"
+					)
+				else:
+					try:
+						df = self._run_query(
+							query,
+							job_label=f"[Gaia] TAP job {batch_index}/{len(batches)}",
+							uploads={UPLOAD_TABLE_NAME: batch_upload},
+						)
+					except Exception:
+						logger.exception(
+							f"[Gaia] Batch {batch_index}/{len(batches)} failed, "
+							"will retry on next run"
+						)
+						bar.update(1)
+						continue
+					if checkpoint_path:
+						df.to_parquet(checkpoint_path)
+
 				if not df.empty:
 					collected.append(df)
 				bar.update(1)
@@ -253,38 +286,33 @@ class GaiaExtractor(CatalogExtractor):
 		job_label: str = "[Gaia] TAP job",
 		uploads: dict[str, Table] | None = None,
 	) -> pd.DataFrame:
-		try:
-			job = self.service.submit_job(query, uploads=uploads)
-			job.run()
-			current_phase = job.phase
+		"""Run one TAP job to completion. Raises on any failure (empty results are not an error)."""
+		job = self.service.submit_job(query, uploads=uploads)
+		job.run()
+		current_phase = job.phase
 
-			with tqdm(
-				total=1,
-				desc=job_label,
-				unit="job",
-				dynamic_ncols=True,
-			) as bar:
-				while current_phase not in JOB_TERMINAL_PHASES:
-					bar.set_postfix_str(f"phase={current_phase}")
-					time.sleep(JOB_POLL_INTERVAL_SECONDS)
-					try:
-						current_phase = self.service.get_job(_get_job_identifier(job)).phase
-					except Exception as exc:
-						logger.warning(f"[Gaia] Refreshing job state failed: {exc}")
-						continue
-
+		with tqdm(
+			total=1,
+			desc=job_label,
+			unit="job",
+			dynamic_ncols=True,
+		) as bar:
+			while current_phase not in JOB_TERMINAL_PHASES:
 				bar.set_postfix_str(f"phase={current_phase}")
-				bar.update(1)
+				time.sleep(JOB_POLL_INTERVAL_SECONDS)
+				try:
+					current_phase = self.service.get_job(_get_job_identifier(job)).phase
+				except Exception as exc:
+					logger.warning(f"[Gaia] Refreshing job state failed: {exc}")
+					continue
 
-			if current_phase != "COMPLETED":
-				logger.error(f"[Gaia] Job ended with phase: {current_phase}")
-				return pd.DataFrame()
+			bar.set_postfix_str(f"phase={current_phase}")
+			bar.update(1)
 
-			table = _fetch_result_with_retry(job)
-			df = table.to_pandas()
-			logger.info(f"[Gaia] Retrieved {len(df)} records")
-		except Exception:
-			logger.exception("[Gaia] TAP extraction failed")
-			return pd.DataFrame()
-		else:
-			return df
+		if current_phase != "COMPLETED":
+			raise RuntimeError(f"[Gaia] Job ended with phase: {current_phase}")
+
+		table = _fetch_result_with_retry(job)
+		df = table.to_pandas()
+		logger.info(f"[Gaia] Retrieved {len(df)} records")
+		return df

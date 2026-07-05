@@ -1,6 +1,7 @@
 """Federated pipeline: extracts from multiple catalogs, cross-matches, and curates."""
 
 from pathlib import Path
+import shutil
 
 from tqdm.auto import tqdm
 
@@ -72,7 +73,8 @@ def run_federated_pipeline(
 		if enrich_gaia:
 			settings = get_settings()
 			gaia = GaiaExtractor(username=settings.gaia_username, password=settings.gaia_password)
-			gaia_df = gaia.extract(targets=valid_sdss)
+			checkpoint_dir = config.output_dir / "gaia_checkpoints"
+			gaia_df = gaia.extract(targets=valid_sdss, checkpoint_dir=checkpoint_dir)
 			progress.set_postfix_str("gaia extracted")
 			progress.update(1)
 
@@ -86,6 +88,8 @@ def run_federated_pipeline(
 				logger.info(
 					f"Gaia enrichment: {curated['gaia_source_id'].notna().sum()} rows matched"
 				)
+
+			shutil.rmtree(checkpoint_dir, ignore_errors=True)
 		else:
 			progress.set_postfix_str("gaia skipped")
 			progress.update(1)

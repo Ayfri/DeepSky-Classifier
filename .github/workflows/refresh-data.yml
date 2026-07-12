@@ -1,0 +1,69 @@
+name: Scheduled Data Refresh
+
+on:
+  schedule:
+    - cron: "0 3 * * 1" # every Monday at 03:00 UTC
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.13"
+  UV_VERSION: "0.11.12"
+
+jobs:
+  refresh:
+    name: Re-run the pipeline and re-train
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: deepsky
+          POSTGRES_USER: deepsky
+          POSTGRES_PASSWORD: deepsky
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Run Alembic migrations
+        env:
+          DEEPSKY_DB_HOST: localhost
+          DEEPSKY_DB_PORT: 5432
+          DEEPSKY_DB_NAME: deepsky
+          DEEPSKY_DB_USER: deepsky
+          DEEPSKY_DB_PASSWORD: deepsky
+        run: uv run alembic upgrade head
+
+      - name: Run the federated pipeline (extract, validate, enrich, curate, train)
+        env:
+          DEEPSKY_DB_HOST: localhost
+          DEEPSKY_DB_PORT: 5432
+          DEEPSKY_DB_NAME: deepsky
+          DEEPSKY_DB_USER: deepsky
+          DEEPSKY_DB_PASSWORD: deepsky
+          DEEPSKY_GAIA_USERNAME: ${{ secrets.DEEPSKY_GAIA_USERNAME }}
+          DEEPSKY_GAIA_PASSWORD: ${{ secrets.DEEPSKY_GAIA_PASSWORD }}
+        run: uv run deepsky-pipeline
+
+      - name: Upload refreshed dataset and model
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepsky-refresh-${{ github.run_id }}
+          path: |
+            data/raw/sdss/curated_features.parquet
+            models/rf_classifier.joblib
+            models/run_metadata.json
+          retention-days: 30

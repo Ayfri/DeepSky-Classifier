@@ -13,6 +13,8 @@ from src.utils.logger import setup_logger
 plt.switch_backend("Agg")
 logger = setup_logger(__name__)
 
+ROC_LINESTYLES: list[str] = ["-", "--", ":", "-."]
+
 
 def plot_confusion_matrix(cm: list[list[int]], labels: list[str], output_path: Path) -> None:
 	output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -40,7 +42,14 @@ def plot_roc_curves(
 	for i, label in enumerate(labels):
 		fpr, tpr, _ = roc_curve(y_bin[:, i], y_score[:, i])
 		roc_auc = auc(fpr, tpr)
-		ax.plot(fpr, tpr, label=f"{label} (AUC={roc_auc:.3f})")
+		# Distinct linestyle per class so curves stay separable without relying on colour (a11y).
+		ax.plot(
+			fpr,
+			tpr,
+			label=f"{label} (AUC={roc_auc:.3f})",
+			linestyle=ROC_LINESTYLES[i % len(ROC_LINESTYLES)],
+			linewidth=1.8,
+		)
 	ax.plot([0, 1], [0, 1], "k--", linewidth=0.8)
 	ax.set_xlabel("False Positive Rate")
 	ax.set_ylabel("True Positive Rate")

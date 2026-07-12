@@ -7,7 +7,7 @@ on:
 
 env:
   PYTHON_VERSION: "3.13"
-  UV_VERSION: "0.11.12"
+  UV_VERSION: "0.11.28"
 
 jobs:
   refresh:
@@ -28,10 +28,10 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v8
         with:
           version: ${{ env.UV_VERSION }}
 
@@ -59,7 +59,7 @@ jobs:
         run: uv run deepsky-pipeline
 
       - name: Upload refreshed dataset and model
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: deepsky-refresh-${{ github.run_id }}
           path: |

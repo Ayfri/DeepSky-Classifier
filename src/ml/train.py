@@ -17,6 +17,7 @@ from src.utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 DEFAULT_MODEL_DIR = Path("models")
+DEFAULT_FIGURES_DIR = Path("reports/figures")
 DEFAULT_TEST_SIZE = 0.2
 DEFAULT_N_ESTIMATORS = 100
 DEFAULT_RANDOM_STATE = 42
@@ -37,6 +38,7 @@ def _sha256_bytes(data: bytes) -> str:
 def train_classifier(
 	data_path: Path,
 	output_dir: Path = DEFAULT_MODEL_DIR,
+	figures_dir: Path = DEFAULT_FIGURES_DIR,
 	n_estimators: int = DEFAULT_N_ESTIMATORS,
 	test_size: float = DEFAULT_TEST_SIZE,
 	random_state: int = DEFAULT_RANDOM_STATE,
@@ -84,7 +86,8 @@ def train_classifier(
 	metrics = evaluate_model(y_test, pd.Series(y_pred, index=y_test.index), labels=labels)
 
 	# --- Save visualisation exports ---
-	figures_dir = Path("reports/figures")
+	# figures_dir is a parameter, not a constant: it used to be hardcoded to reports/figures, so every
+	# test run silently overwrote the real figures with plots of its toy fixture.
 	plot_confusion_matrix(metrics["confusion_matrix"], labels, figures_dir / "confusion_matrix.png")
 	y_proba = clf.predict_proba(X_test)
 	plot_roc_curves(y_test, y_proba, labels, figures_dir / "roc_curves.png")

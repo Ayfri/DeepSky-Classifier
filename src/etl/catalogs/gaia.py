@@ -28,22 +28,6 @@ UPLOAD_TABLE_NAME = "sdss_targets"
 
 pyvo_tap.DEFAULT_JOB_POLL_TIMEOUT = int(GAIA_JOB_POLL_TIMEOUT_SECONDS)
 
-GAIA_SOURCE_QUERY = """
-SELECT TOP {limit}
-	source_id,
-	ra,
-	dec,
-	parallax,
-	pmra,
-	pmdec,
-	phot_g_mean_mag
-FROM gaiadr3.gaia_source
-WHERE parallax IS NOT NULL
-	AND pmra IS NOT NULL
-	AND pmdec IS NOT NULL
-ORDER BY source_id
-"""
-
 # Joins the consortium's precomputed SDSS DR13 x Gaia DR3 cross-match instead of running our own
 # cone search. The cone search scanned gaia_source (1.8e9 rows) per batch and kept getting killed by
 # the archive; this is an indexed identifier join that returns in seconds. It is also the stricter
@@ -185,28 +169,23 @@ class GaiaExtractor(CatalogExtractor):
 	@override
 	def extract(
 		self,
-		batch_size: int = DEFAULT_BATCH_SIZE,
-		limit: int = 10000,
 		targets: pd.DataFrame | None = None,
+		batch_size: int = DEFAULT_BATCH_SIZE,
 		max_sep_arcsec: float = DEFAULT_MAX_SEPARATION_ARCSEC,
 		checkpoint_dir: Path | None = None,
 		**kwargs: object,
 	) -> pd.DataFrame:
-		if targets is not None:
-			return self._extract_for_targets(
-				targets,
-				batch_size=batch_size,
-				max_sep_arcsec=max_sep_arcsec,
-				checkpoint_dir=checkpoint_dir,
+		if targets is None:
+			raise ValueError(
+				"GaiaExtractor.extract requires targets: this catalog is cross-matched, not queried standalone"
 			)
 
-		query = GAIA_SOURCE_QUERY.format(limit=limit)
-		logger.info(f"[Gaia] Submitting async TAP job (limit={limit})")
-		try:
-			return self._run_query(query)
-		except Exception:
-			logger.exception("[Gaia] TAP extraction failed")
-			return pd.DataFrame()
+		return self._extract_for_targets(
+			targets,
+			batch_size=batch_size,
+			max_sep_arcsec=max_sep_arcsec,
+			checkpoint_dir=checkpoint_dir,
+		)
 
 	def _extract_for_targets(
 		self,

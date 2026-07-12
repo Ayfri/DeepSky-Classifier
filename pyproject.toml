@@ -172,6 +172,10 @@ addopts = [
 	"-ra",
 ]
 asyncio_mode = "auto"
+filterwarnings = [
+	# joblib 1.5.3 assigns array.shape, deprecated by NumPy 2.5. Fixed upstream (joblib#1772), ships in 1.6.0: drop this filter and floor joblib>=1.6.0 then.
+	"ignore:Setting the shape on a NumPy array has been deprecated:DeprecationWarning:joblib.numpy_pickle",
+]
 markers = [
 	"integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
 	"slow: marks tests as slow",

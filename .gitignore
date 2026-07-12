@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .venv/
+.coverage
 
 # Project Data & Artifacts
 data/
@@ -14,6 +15,7 @@ reports/*
 # Secrets & Environment
 .env
 *.env
+docker/nginx/certs/*.pem
 
 # IDEs & System
 .cursor/

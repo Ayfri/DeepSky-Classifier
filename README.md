@@ -157,6 +157,25 @@ uv run pytest
 uv run ruff check .
 ```
 
+### Run with Docker Compose
+
+Brings up the full architecture: Postgres on an isolated `backend` network, the API reachable only
+through Nginx on `edge`, TLS terminated at the edge. Matches the addressing plan documented in the
+mémoire (bloc 1, §9.3).
+
+```bash
+cp .env.example .env               # fill in DEEPSKY_GAIA_* if you want authenticated Gaia access
+./docker/nginx/generate-dev-cert.sh   # self-signed cert for local HTTPS; production uses Let's Encrypt
+docker compose up --build
+```
+
+The API is then only reachable through Nginx at `https://localhost/health` (self-signed cert, expect
+a browser warning locally). To run the ETL pipeline once against the containerised stack:
+
+```bash
+docker compose --profile pipeline run --rm pipeline
+```
+
 ---
 
 ## License

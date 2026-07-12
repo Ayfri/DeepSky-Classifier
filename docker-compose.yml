@@ -1,0 +1,121 @@
+x-app-image: &app-image
+  build:
+    context: .
+    dockerfile: Dockerfile
+
+services:
+  postgres:
+    image: postgres:17
+    networks:
+      backend:
+        ipv4_address: 172.21.0.30
+    environment:
+      POSTGRES_DB: ${DEEPSKY_DB_NAME:-deepsky}
+      POSTGRES_USER: ${DEEPSKY_DB_USER:-deepsky}
+      POSTGRES_PASSWORD: ${DEEPSKY_DB_PASSWORD:-deepsky}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DEEPSKY_DB_USER:-deepsky}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    # No `ports:` on purpose: only containers on `backend` can reach 5432.
+
+  migrate:
+    <<: *app-image
+    command: ["uv", "run", "alembic", "upgrade", "head"]
+    networks:
+      - backend
+    environment: &deepsky-env
+      DEEPSKY_DB_HOST: postgres
+      DEEPSKY_DB_PORT: 5432
+      DEEPSKY_DB_NAME: ${DEEPSKY_DB_NAME:-deepsky}
+      DEEPSKY_DB_USER: ${DEEPSKY_DB_USER:-deepsky}
+      DEEPSKY_DB_PASSWORD: ${DEEPSKY_DB_PASSWORD:-deepsky}
+      DEEPSKY_GAIA_USERNAME: ${DEEPSKY_GAIA_USERNAME:-}
+      DEEPSKY_GAIA_PASSWORD: ${DEEPSKY_GAIA_PASSWORD:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    <<: *app-image
+    networks:
+      edge:
+        ipv4_address: 172.20.0.20
+      backend:
+        ipv4_address: 172.21.0.20
+    environment:
+      <<: *deepsky-env
+      DEEPSKY_API_HOST: 0.0.0.0
+      DEEPSKY_API_PORT: 8000
+    volumes:
+      - app_data:/app/data
+      - app_models:/app/models
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    # No `ports:` either: FastAPI is reachable only from Nginx, over `edge`.
+
+  pipeline:
+    <<: *app-image
+    command: ["uv", "run", "deepsky-pipeline"]
+    networks:
+      backend:
+        ipv4_address: 172.21.0.40
+    environment: *deepsky-env
+    volumes:
+      - app_data:/app/data
+      - app_models:/app/models
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    profiles:
+      - pipeline
+    # No inbound port: this container only makes outbound HTTPS calls to SDSS/Gaia and writes to
+    # Postgres + the shared volume. Run on demand: `docker compose --profile pipeline run pipeline`.
+    restart: "no"
+
+  nginx:
+    image: nginx:1.27-alpine
+    networks:
+      edge:
+        ipv4_address: 172.20.0.10
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    # The only service publishing a port to the host, per the bloc 1 §9.3 addressing plan.
+
+networks:
+  edge:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+  backend:
+    driver: bridge
+    internal: false # Prefect/API still need outbound HTTPS to SDSS, Gaia and the ESA TAP service.
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+
+volumes:
+  pg_data:
+  app_data:
+  app_models:

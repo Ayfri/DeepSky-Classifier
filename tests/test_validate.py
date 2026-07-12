@@ -1,6 +1,7 @@
+import numpy as np
 import pandas as pd
 
-from src.core.schemas import SDSSRawRecord
+from src.core.schemas import CuratedFeatureRecord, SDSSRawRecord
 from src.etl.validate import validate_dataframe
 
 
@@ -58,3 +59,30 @@ class TestValidateDataframe:
 		valid, quarantine = validate_dataframe(df, SDSSRawRecord)
 		assert len(valid) == 3
 		assert len(quarantine) == 2
+
+
+class TestMissingEnrichmentIsNotQuarantined:
+	"""A left join leaves NaN, not None, on unmatched rows: nullable fields must still accept them.
+
+	Regression test: this silently quarantined every SDSS object without a Gaia counterpart, so the
+	curated set only ever contained Gaia-matched objects.
+	"""
+
+	def _curated_rows(self, n: int = 4) -> pd.DataFrame:
+		rows = _valid_rows(n)
+		frame = pd.DataFrame(rows)
+		frame["source"] = "sdss"
+		# Only the first row got a Gaia counterpart; the rest are NaN, exactly as a left join emits.
+		frame["gaia_source_id"] = [12345, np.nan, np.nan, np.nan][:n]
+		frame["gaia_parallax"] = [0.42, np.nan, np.nan, np.nan][:n]
+		return frame
+
+	def test_unmatched_rows_survive_validation(self):
+		valid, quarantine = validate_dataframe(self._curated_rows(), CuratedFeatureRecord)
+		assert len(valid) == 4
+		assert quarantine.empty
+
+	def test_missing_enrichment_becomes_none(self):
+		valid, _ = validate_dataframe(self._curated_rows(), CuratedFeatureRecord)
+		assert valid["gaia_source_id"].isna().sum() == 3
+		assert valid.loc[0, "gaia_source_id"] == 12345

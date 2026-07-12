@@ -1,5 +1,6 @@
 from typing import Any
 
+import numpy as np
 import pandas as pd
 from pydantic import BaseModel, ValidationError
 from tqdm.auto import tqdm
@@ -7,6 +8,21 @@ from tqdm.auto import tqdm
 from src.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
+
+
+def _missing_to_none(value: object) -> object:
+	"""Map pandas' missing sentinels (NaN, NaT, pd.NA) onto ``None``.
+
+	A left join leaves NaN, which is a *float*, in the columns of unmatched rows. A schema field
+	typed ``int | None`` rejects that float, so every row lacking an optional enrichment (a Gaia
+	counterpart, say) fails validation and is silently quarantined rather than kept with an empty
+	column. Nullable means nullable, so hand pydantic the None it expects.
+	"""
+	if value is None or value is pd.NA or value is pd.NaT:
+		return None
+	if isinstance(value, float | np.floating) and bool(np.isnan(value)):
+		return None
+	return value
 
 
 def validate_dataframe(
@@ -26,7 +42,9 @@ def validate_dataframe(
 		dynamic_ncols=True,
 	):
 		try:
-			validated = schema.model_validate(record)
+			validated = schema.model_validate(
+				{key: _missing_to_none(value) for key, value in record.items()}
+			)
 			valid_records.append(validated.model_dump())
 		except ValidationError as exc:
 			quarantine_row = {str(key): value for key, value in record.items()}

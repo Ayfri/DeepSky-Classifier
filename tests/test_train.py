@@ -79,4 +79,6 @@ class TestTrainClassifier:
 		train_classifier(data_path=data_file, output_dir=tmp_path, figures_dir=tmp_path)
 
 		assert (tmp_path / "roc_curves.png").exists()
+		assert (tmp_path / "confusion_matrix.png").exists()
+		assert (tmp_path / "feature_importance.png").exists()
 		assert {path: path.read_bytes() for path in DEFAULT_FIGURES_DIR.glob("*.png")} == before

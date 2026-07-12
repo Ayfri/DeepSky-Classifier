@@ -20,7 +20,9 @@ GAIA_LOGIN_URL = "https://gea.esac.esa.int/tap-server/login"
 GAIA_LOGIN_TIMEOUT_SECONDS = 30.0
 GAIA_JOB_POLL_TIMEOUT_SECONDS = 120.0
 GAIA_JOB_WAIT_TIMEOUT_SECONDS = 60.0
-DEFAULT_BATCH_SIZE = 250
+# The identifier join is cheap, so targets go up in a few large batches rather than hundreds of tiny
+# ones (6000 targets resolve in a single ~3s job).
+DEFAULT_BATCH_SIZE = 5000
 DEFAULT_MAX_SEPARATION_ARCSEC = 1.5
 UPLOAD_TABLE_NAME = "sdss_targets"
 
@@ -42,6 +44,14 @@ WHERE parallax IS NOT NULL
 ORDER BY source_id
 """
 
+# Joins the consortium's precomputed SDSS DR13 x Gaia DR3 cross-match instead of running our own
+# cone search. The cone search scanned gaia_source (1.8e9 rows) per batch and kept getting killed by
+# the archive; this is an indexed identifier join that returns in seconds. It is also the stricter
+# match: the consortium uses the full astrometric covariance and a chance-alignment figure of merit,
+# where a blind 1.5" cone picks up spurious neighbours.
+# Crucially there is NO `parallax IS NOT NULL` filter: extragalactic sources rarely get a 5-parameter
+# astrometric solution, so that filter silently deleted ~80% of the galaxies. A missing parallax is
+# itself informative (see `gaia_has_astrometry` in src/ml/features.py) and must reach the model.
 GAIA_TARGET_QUERY = """
 SELECT
 	targets.objid,
@@ -50,13 +60,13 @@ SELECT
 	gaia.pmdec,
 	gaia.pmra,
 	gaia.phot_g_mean_mag,
-	DISTANCE(targets.ra, targets.dec, gaia.ra, gaia.dec) * 3600.0 AS match_sep_arcsec
+	xmatch.angular_distance AS match_sep_arcsec
 FROM TAP_UPLOAD.{upload_table_name} AS targets
+JOIN gaiadr3.sdssdr13_best_neighbour AS xmatch
+	ON xmatch.original_ext_source_id = targets.objid
 JOIN gaiadr3.gaia_source AS gaia
-	ON DISTANCE(targets.ra, targets.dec, gaia.ra, gaia.dec) < {radius_deg}
-WHERE gaia.parallax IS NOT NULL
-	AND gaia.pmra IS NOT NULL
-	AND gaia.pmdec IS NOT NULL
+	ON gaia.source_id = xmatch.source_id
+WHERE xmatch.angular_distance < {max_sep_arcsec}
 """
 
 JOB_POLL_INTERVAL_SECONDS = 5
@@ -92,10 +102,6 @@ def _get_job_identifier(job: object) -> str:
 	raise AttributeError("PyVO TAP job does not expose a job identifier")
 
 
-def _arcsec_to_degrees(value: float) -> float:
-	return value / 3600.0
-
-
 def _create_authenticated_session(username: str, password: str) -> requests.Session:
 	"""Log in to the Gaia archive to raise the anonymous-user upload quota.
 
@@ -123,21 +129,20 @@ def _build_target_query(
 ) -> str:
 	return GAIA_TARGET_QUERY.format(
 		upload_table_name=upload_table_name,
-		radius_deg=_arcsec_to_degrees(max_sep_arcsec),
+		max_sep_arcsec=max_sep_arcsec,
 	)
 
 
 def _prepare_target_upload(targets: pd.DataFrame) -> Table:
-	required_columns = ["objid", "ra", "dec"]
-	missing = [column for column in required_columns if column not in targets.columns]
-	if missing:
-		raise KeyError(f"Missing target columns for Gaia upload: {missing}")
+	"""Upload objid only: the cross-match is an identifier join, positions are no longer needed."""
+	if "objid" not in targets.columns:
+		raise KeyError("Missing target column for Gaia upload: ['objid']")
 
 	upload = (
-		targets.loc[:, required_columns]
-		.dropna(subset=["objid", "ra", "dec"])
+		targets.loc[:, ["objid"]]
+		.dropna(subset=["objid"])
 		.drop_duplicates(subset=["objid"])
-		.astype({"dec": "float64", "objid": "int64", "ra": "float64"})
+		.astype({"objid": "int64"})
 		.sort_values("objid")
 		.reset_index(drop=True)
 	)

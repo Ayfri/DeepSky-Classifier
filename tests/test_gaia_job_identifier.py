@@ -3,7 +3,6 @@ import pandas as pd
 import pytest
 
 from src.etl.catalogs.gaia import (
-	_arcsec_to_degrees,
 	_build_target_query,
 	_get_job_identifier,
 	_iter_target_batches,
@@ -37,7 +36,14 @@ def test_build_target_query_uses_uploaded_table() -> None:
 	assert "FROM TAP_UPLOAD.sdss_targets AS targets" in query
 	assert "targets.objid" in query
 	assert "match_sep_arcsec" in query
-	assert str(_arcsec_to_degrees(1.5)) in query
+	assert "gaiadr3.sdssdr13_best_neighbour" in query
+	assert "xmatch.angular_distance < 1.5" in query
+
+
+def test_build_target_query_does_not_filter_out_missing_astrometry() -> None:
+	"""Extragalactic sources rarely have a parallax; filtering on it would delete most galaxies."""
+	query = _build_target_query("sdss_targets", max_sep_arcsec=1.5)
+	assert "parallax IS NOT NULL" not in query
 
 
 def test_select_nearest_matches_keeps_closest_source_per_objid() -> None:

@@ -11,12 +11,17 @@ services:
         ipv4_address: 172.21.0.30
     environment:
       POSTGRES_DB: ${DEEPSKY_DB_NAME:-deepsky}
-      POSTGRES_USER: ${DEEPSKY_DB_USER:-deepsky}
-      POSTGRES_PASSWORD: ${DEEPSKY_DB_PASSWORD:-deepsky}
+      # Initdb superuser: only `migrate` ever connects as this role, to run Alembic DDL.
+      POSTGRES_USER: ${DEEPSKY_DB_ADMIN_USER:-deepsky_admin}
+      POSTGRES_PASSWORD: ${DEEPSKY_DB_ADMIN_PASSWORD:-deepsky_admin}
+      # Read by docker/postgres/init-app-role.sh, not by the app: creates the restricted role below.
+      DEEPSKY_DB_APP_USER: ${DEEPSKY_DB_APP_USER:-deepsky_app}
+      DEEPSKY_DB_APP_PASSWORD: ${DEEPSKY_DB_APP_PASSWORD:-deepsky_app}
     volumes:
       - pg_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-app-role.sh:/docker-entrypoint-initdb.d/init-app-role.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DEEPSKY_DB_USER:-deepsky}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DEEPSKY_DB_ADMIN_USER:-deepsky_admin}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,14 +33,15 @@ services:
     command: ["uv", "run", "alembic", "upgrade", "head"]
     networks:
       - backend
-    environment: &deepsky-env
+    environment: &deepsky-base-env
       DEEPSKY_DB_HOST: postgres
       DEEPSKY_DB_PORT: 5432
       DEEPSKY_DB_NAME: ${DEEPSKY_DB_NAME:-deepsky}
-      DEEPSKY_DB_USER: ${DEEPSKY_DB_USER:-deepsky}
-      DEEPSKY_DB_PASSWORD: ${DEEPSKY_DB_PASSWORD:-deepsky}
       DEEPSKY_GAIA_USERNAME: ${DEEPSKY_GAIA_USERNAME:-}
       DEEPSKY_GAIA_PASSWORD: ${DEEPSKY_GAIA_PASSWORD:-}
+      # The only service using the schema-owning role: it runs CREATE/ALTER/DROP TABLE via Alembic.
+      DEEPSKY_DB_USER: ${DEEPSKY_DB_ADMIN_USER:-deepsky_admin}
+      DEEPSKY_DB_PASSWORD: ${DEEPSKY_DB_ADMIN_PASSWORD:-deepsky_admin}
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,7 +55,10 @@ services:
       backend:
         ipv4_address: 172.21.0.20
     environment:
-      <<: *deepsky-env
+      <<: *deepsky-base-env
+      # DML-only role: the running API can never alter the schema, even if compromised.
+      DEEPSKY_DB_USER: ${DEEPSKY_DB_APP_USER:-deepsky_app}
+      DEEPSKY_DB_PASSWORD: ${DEEPSKY_DB_APP_PASSWORD:-deepsky_app}
       DEEPSKY_API_HOST: 0.0.0.0
       DEEPSKY_API_PORT: 8000
     volumes:
@@ -72,7 +81,11 @@ services:
     networks:
       backend:
         ipv4_address: 172.21.0.40
-    environment: *deepsky-env
+    environment:
+      <<: *deepsky-base-env
+      # Same DML-only role as `api`: the pipeline writes rows, it never touches the schema.
+      DEEPSKY_DB_USER: ${DEEPSKY_DB_APP_USER:-deepsky_app}
+      DEEPSKY_DB_PASSWORD: ${DEEPSKY_DB_APP_PASSWORD:-deepsky_app}
     volumes:
       - app_data:/app/data
       - app_models:/app/models

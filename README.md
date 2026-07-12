@@ -161,7 +161,9 @@ uv run ruff check .
 
 Brings up the full architecture: Postgres on an isolated `backend` network, the API reachable only
 through Nginx on `edge`, TLS terminated at the edge. Matches the addressing plan documented in the
-mémoire (bloc 1, §9.3).
+mémoire (bloc 1, §9.3). Postgres also gets two roles instead of one: `deepsky_admin` owns the schema
+and is the only role `migrate` connects as, `deepsky_app` is DML-only (no `CREATE`/`DROP`) and is
+what `api` and `pipeline` connect as — see `docker/postgres/init-app-role.sh`.
 
 ```bash
 cp .env.example .env               # fill in DEEPSKY_GAIA_* if you want authenticated Gaia access

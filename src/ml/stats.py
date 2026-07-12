@@ -10,6 +10,14 @@ logger = setup_logger(__name__)
 
 EXTRAGALACTIC_LABELS: list[str] = ["GALAXY", "QSO"]
 
+# Smallest positive float64. A p-value this extreme underflows to exactly 0.0, and reporting "p = 0"
+# is wrong: the test only ever bounds p from above. Report the bound instead.
+P_VALUE_FLOOR = 5e-324
+
+
+def _format_p_value(p_value: float) -> str:
+	return f"< {P_VALUE_FLOOR:g} (underflow)" if p_value == 0.0 else f"{p_value:.6g}"
+
 
 def redshift_kruskal(df: pd.DataFrame) -> dict[str, Any]:
 	"""Kruskal-Wallis H-test: does redshift differ across class_label groups?"""
@@ -29,10 +37,11 @@ def redshift_kruskal(df: pd.DataFrame) -> dict[str, Any]:
 	result: dict[str, Any] = {
 		"statistic": float(statistic),
 		"p_value": float(p_value),
+		"p_value_underflow": bool(p_value == 0.0),
 		"n_groups": len(groups),
 		"reject_null": bool(p_value < 0.05),
 	}
-	logger.info(f"Kruskal-Wallis on redshift: H={statistic:.4f}, p={p_value:.6g}")
+	logger.info(f"Kruskal-Wallis on redshift: H={statistic:.4f}, p={_format_p_value(p_value)}")
 	return result
 
 
@@ -56,9 +65,10 @@ def parallax_mannwhitney(df: pd.DataFrame) -> dict[str, Any] | None:
 	result: dict[str, Any] = {
 		"statistic": float(statistic),
 		"p_value": float(p_value),
+		"p_value_underflow": bool(p_value == 0.0),
 		"n_stars": len(stars),
 		"n_extragalactic": len(extragalactic),
 		"reject_null": bool(p_value < 0.05),
 	}
-	logger.info(f"Mann-Whitney on gaia_parallax: U={statistic:.4f}, p={p_value:.6g}")
+	logger.info(f"Mann-Whitney on gaia_parallax: U={statistic:.4f}, p={_format_p_value(p_value)}")
 	return result

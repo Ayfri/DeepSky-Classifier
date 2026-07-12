@@ -56,6 +56,11 @@ dev = [
 	"ruff>=0.15.20",
 	"seaborn>=0.13.2",
 ]
+# Kept out of `dev` so CI does not pull a Jupyter stack it never runs.
+notebook = [
+	"ipykernel>=7.1.0",
+	"nbconvert>=7.16.6",
+]
 
 [build-system]
 requires = ["hatchling"]

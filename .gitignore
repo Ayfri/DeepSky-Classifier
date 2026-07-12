@@ -6,7 +6,10 @@ __pycache__/
 # Project Data & Artifacts
 data/
 models/
-reports/
+# `reports/*` plutôt que `reports/` : git ne descend pas dans un répertoire exclu, donc une
+# négation ne pourrait pas réintégrer un fichier. Le tableau de bord est un livrable, pas un artefact.
+reports/*
+!reports/dashboard.ipynb
 
 # Secrets & Environment
 .env

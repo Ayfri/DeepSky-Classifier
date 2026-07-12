@@ -18,6 +18,7 @@ RUN uv sync --locked --no-install-project --no-group dev --no-group notebook
 COPY src ./src
 COPY alembic.ini ./alembic.ini
 COPY migrations ./migrations
+COPY README.md LICENSE ./
 RUN uv sync --locked --no-group dev --no-group notebook
 
 ENV PATH="/app/.venv/bin:$PATH"

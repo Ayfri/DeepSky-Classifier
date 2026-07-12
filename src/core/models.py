@@ -37,20 +37,41 @@ class CelestialBody(Base):
 		"z_mag": "p.z AS z_mag",
 	}
 
+	PLATE_QUERY: ClassVar[str] = "SELECT DISTINCT plate FROM SpecObj WHERE zWarning = 0"
+
 	@classmethod
-	def build_sdss_query(cls, limit: int, label: str, fields: list[str] | None = None) -> str:
+	def build_sdss_query(
+		cls,
+		label: str,
+		plates: list[int],
+		max_rows: int = 100_000,
+		fields: list[str] | None = None,
+	) -> str:
+		"""Select every ``label`` object lying on one of ``plates``, to be subsampled client-side.
+
+		Sampling is done at the plate level rather than with a bare ``TOP n``: SkyServer has no
+		usable randomisation (``NEWID()`` forces a full sort and times out, a modulo on objid is
+		not indexable), so ``TOP n`` returns the first rows in scan order. That clusters the sample
+		in one sky region and collapses the redshift range, which makes redshift a perfect class
+		separator. ``plate`` is indexed and the ~6500 plates tile the whole survey footprint.
+		"""
+		if not plates:
+			raise ValueError("build_sdss_query requires at least one plate")
+
 		target_fields = fields if fields else sorted(cls.SDSS_FIELD_REGISTRY.keys())
 		selection = ", ".join(
 			cls.SDSS_FIELD_REGISTRY[f] for f in target_fields if f in cls.SDSS_FIELD_REGISTRY
 		)
+		plate_list = ", ".join(str(int(plate)) for plate in plates)
 
 		return f"""
-		SELECT TOP {limit} {selection}
-		FROM PhotoObj AS p
-		JOIN SpecObj AS s ON s.bestobjid = p.objid
+		SELECT TOP {max_rows} {selection}
+		FROM SpecObj AS s
+		JOIN PhotoObj AS p ON s.bestobjid = p.objid
 		WHERE s.zWarning = 0
 		  AND p.clean = 1
 		  AND s.class = '{label}'
+		  AND s.plate IN ({plate_list})
 		""".strip()
 
 

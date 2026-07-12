@@ -3,7 +3,13 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from src.ml.features import BASELINE_FEATURES, GAIA_FEATURES, LABEL_COLUMN, select_features
+from src.ml.features import (
+	BASELINE_FEATURES,
+	GAIA_ASTROMETRY_FLAG,
+	GAIA_FEATURES,
+	LABEL_COLUMN,
+	select_features,
+)
 
 
 def _make_df(n: int = 10, include_gaia: bool = False) -> pd.DataFrame:
@@ -32,7 +38,7 @@ class TestSelectFeatures:
 	def test_gaia_features_included(self):
 		df = _make_df(10, include_gaia=True)
 		X, _ = select_features(df, include_gaia=True)
-		expected_cols = len(BASELINE_FEATURES) + len(GAIA_FEATURES)
+		expected_cols = len(BASELINE_FEATURES) + len(GAIA_FEATURES) + 1  # + the astrometry flag
 		assert X.shape[1] == expected_cols
 
 	def test_missing_column_raises(self):
@@ -52,3 +58,32 @@ class TestSelectFeatures:
 		X, y = select_features(df)
 		assert len(X) == 8
 		assert len(y) == 8
+
+
+class TestMissingGaiaAstrometryIsSignal:
+	"""Extragalactic sources rarely get a 5-parameter solution, so a NaN parallax is informative.
+
+	Regression test: dropping those rows deleted most of the galaxies from the Gaia-enriched set.
+	"""
+
+	def _df_with_partial_astrometry(self) -> pd.DataFrame:
+		df = _make_df(10, include_gaia=True)
+		for col in GAIA_FEATURES:
+			df.loc[5:, col] = float("nan")  # half the sample has no astrometric solution
+		return df
+
+	def test_rows_without_astrometry_are_kept(self):
+		X, y = select_features(self._df_with_partial_astrometry(), include_gaia=True)
+		assert len(X) == 10
+		assert len(y) == 10
+		assert X["gaia_parallax"].isna().sum() == 5
+
+	def test_astrometry_flag_encodes_missingness(self):
+		X, _ = select_features(self._df_with_partial_astrometry(), include_gaia=True)
+		assert list(X[GAIA_ASTROMETRY_FLAG]) == [1.0] * 5 + [0.0] * 5
+
+	def test_baseline_nan_still_drops_the_row(self):
+		df = self._df_with_partial_astrometry()
+		df.loc[0, "u"] = float("nan")
+		X, _ = select_features(df, include_gaia=True)
+		assert len(X) == 9

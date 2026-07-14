@@ -8,6 +8,7 @@ from prefect import flow, task
 from src.core.config import PipelineConfig
 from src.core.integrity import compute_sha256
 from src.core.schemas import CuratedFeatureRecord, SDSSRawRecord
+from src.core.settings import get_settings
 from src.etl.catalogs.gaia import GaiaExtractor
 from src.etl.catalogs.sdss import SDSSExtractor
 from src.etl.crossmatch import merge_catalogs
@@ -30,7 +31,10 @@ def extract_sdss_task(config: PipelineConfig) -> pd.DataFrame:
 
 @task(retries=2, retry_delay_seconds=30, name="extract_gaia")
 def extract_gaia_task(sdss_df: pd.DataFrame) -> pd.DataFrame:
-	extractor = GaiaExtractor()
+	# Same credential wiring as federated.py: without it the flow runs anonymous and the shared
+	# anonymous upload quota rejects every batch.
+	settings = get_settings()
+	extractor = GaiaExtractor(username=settings.gaia_username, password=settings.gaia_password)
 	return extractor.extract(targets=sdss_df)
 
 
@@ -148,5 +152,13 @@ def deepsky_pipeline(
 	return results
 
 
+def main() -> None:
+	"""Console entry point. Console scripts call sys.exit(func()): returning the flow's result dict
+	would exit non-zero even on success, so the dict is consumed here and only a failure raises."""
+	results = deepsky_pipeline()
+	if results.get("status") != "success":
+		raise SystemExit(f"Pipeline failed: {results}")
+
+
 if __name__ == "__main__":
-	deepsky_pipeline()
+	main()

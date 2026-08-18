@@ -83,6 +83,8 @@ line-ending = "auto"
 quote-style = "double"
 
 [tool.ruff.lint]
+# Named selectors read better than codes in ignore lists, and they need lint preview mode.
+preview = true
 select = [
 	"A",
 	"ANN",
@@ -112,28 +114,30 @@ select = [
 	"UP",
 ]
 ignore = [
-	"ANN401",
-	"BLE001",
-	"COM812",
-	"E101",
-	"ISC001",
-	"N806",
-	"PLC0415",
-	"S101",
-	"S104",
-	"S105",
-	"S608",
-	"TRY003",
-	"W191",
+	"any-type",
+	"assert",
+	"blind-except",
+	# Exact zero is the signal here: a p-value that underflowed to 0.0, and the 0/1 Gaia astrometry flag.
+	"float-equality-comparison",
+	"hardcoded-bind-all-interfaces",
+	"hardcoded-password-string",
+	"hardcoded-sql-expression",
+	"import-outside-top-level",
+	"missing-trailing-comma",
+	"mixed-spaces-and-tabs",
+	"non-lowercase-variable-in-function",
+	"raise-vanilla-args",
+	"single-line-implicit-string-concatenation",
+	"tab-indentation",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"src/api/**/*.py" = ["B008"]
-"src/core/models.py" = ["S608"]
-"src/etl/catalogs/**/*.py" = ["BLE001"]
-"src/ml/**/*.py" = ["N803", "N806"]
-"src/ml/train.py" = ["T201"]
-"src/workflows/**/*.py" = ["T201"]
+"src/api/**/*.py" = ["function-call-in-default-argument"]
+"src/core/models.py" = ["hardcoded-sql-expression"]
+"src/etl/catalogs/**/*.py" = ["blind-except"]
+"src/ml/**/*.py" = ["invalid-argument-name", "non-lowercase-variable-in-function"]
+"src/ml/train.py" = ["print"]
+"src/workflows/**/*.py" = ["print"]
 "tests/**/*.py" = ["ANN", "ARG", "S"]
 
 [tool.ruff.lint.flake8-type-checking]

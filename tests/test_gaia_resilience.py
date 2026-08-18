@@ -55,7 +55,9 @@ class TestCreateAuthenticatedSession:
 	def test_returns_session_with_cookies(self, monkeypatch: pytest.MonkeyPatch) -> None:
 		def fake_post(self: httpx2.Client, url: str, data: dict[str, str]) -> httpx2.Response:
 			request = httpx2.Request("POST", url)
-			return httpx2.Response(200, request=request, headers={"set-cookie": "JSESSIONID=abc123"})
+			return httpx2.Response(
+				200, request=request, headers={"set-cookie": "JSESSIONID=abc123"}
+			)
 
 		monkeypatch.setattr(httpx2.Client, "post", fake_post)
 		session = gaia._create_authenticated_session("proy01", "secret")

@@ -3,7 +3,7 @@ import time
 from typing import override
 
 from astropy.table import Table
-import httpx
+import httpx2
 import pandas as pd
 from pyvo.dal import TAPService
 import pyvo.dal.tap as pyvo_tap
@@ -89,11 +89,11 @@ def _get_job_identifier(job: object) -> str:
 def _create_authenticated_session(username: str, password: str) -> requests.Session:
 	"""Log in to the Gaia archive to raise the anonymous-user upload quota.
 
-	The login POST itself uses httpx; the resulting cookies are bridged onto a
+	The login POST itself uses httpx2; the resulting cookies are bridged onto a
 	``requests.Session`` because pyvo's ``TAPService`` hardcodes requests-specific
 	behaviour internally (``stream=True``, ``requests.RequestException``).
 	"""
-	with httpx.Client(timeout=GAIA_LOGIN_TIMEOUT_SECONDS) as client:
+	with httpx2.Client(timeout=GAIA_LOGIN_TIMEOUT_SECONDS) as client:
 		response = client.post(GAIA_LOGIN_URL, data={"username": username, "password": password})
 		response.raise_for_status()
 		cookies = dict(response.cookies)

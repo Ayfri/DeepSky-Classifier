@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import httpx
+import httpx2
 import pandas as pd
 import pytest
 
@@ -53,20 +53,20 @@ class TestFetchResultWithRetry:
 
 class TestCreateAuthenticatedSession:
 	def test_returns_session_with_cookies(self, monkeypatch: pytest.MonkeyPatch) -> None:
-		def fake_post(self: httpx.Client, url: str, data: dict[str, str]) -> httpx.Response:
-			request = httpx.Request("POST", url)
-			return httpx.Response(200, request=request, headers={"set-cookie": "JSESSIONID=abc123"})
+		def fake_post(self: httpx2.Client, url: str, data: dict[str, str]) -> httpx2.Response:
+			request = httpx2.Request("POST", url)
+			return httpx2.Response(200, request=request, headers={"set-cookie": "JSESSIONID=abc123"})
 
-		monkeypatch.setattr(httpx.Client, "post", fake_post)
+		monkeypatch.setattr(httpx2.Client, "post", fake_post)
 		session = gaia._create_authenticated_session("proy01", "secret")
 		assert session.cookies.get("JSESSIONID") == "abc123"
 
 	def test_raises_when_no_cookies_returned(self, monkeypatch: pytest.MonkeyPatch) -> None:
-		def fake_post(self: httpx.Client, url: str, data: dict[str, str]) -> httpx.Response:
-			request = httpx.Request("POST", url)
-			return httpx.Response(200, request=request)
+		def fake_post(self: httpx2.Client, url: str, data: dict[str, str]) -> httpx2.Response:
+			request = httpx2.Request("POST", url)
+			return httpx2.Response(200, request=request)
 
-		monkeypatch.setattr(httpx.Client, "post", fake_post)
+		monkeypatch.setattr(httpx2.Client, "post", fake_post)
 		with pytest.raises(RuntimeError, match="session cookie"):
 			gaia._create_authenticated_session("proy01", "secret")
 

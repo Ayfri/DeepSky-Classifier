@@ -15,26 +15,25 @@ classifiers = [
 	"Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-	"alembic>=1.18.5",
+	"alembic>=1.19.1",
 	"astropy>=8.0.1",
 	"astroquery>=0.4.11",
 	"colorama>=0.4.6",
-	"fastapi>=0.139.0",
+	"fastapi>=0.141.1",
 	"httpx>=0.28.1",
 	"joblib>=1.5.3",
-	# 3.0.4 is yanked upstream (segfaults in datetime handling), do not raise this floor without checking.
-	"pandas>=3.0.3,!=3.0.4",
-	"prefect>=3.7.8",
+	"pandas>=3.0.5",
+	"prefect>=3.8.3",
 	"psycopg[binary,pool]>=3.3.4",
-	"pyarrow>=25.0.0",
+	"pyarrow>=25.0.1",
 	"pydantic>=2.13.4",
-	"pydantic-settings>=2.14.2",
+	"pydantic-settings>=2.15.0",
 	"pyvo>=1.9.1",
 	"scikit-learn>=1.9.0",
 	"scipy>=1.18.0",
-	"sqlalchemy>=2.0.51",
-	"tqdm>=4.68.4",
-	"uvicorn[standard]>=0.51.0",
+	"sqlalchemy>=2.0.52",
+	"tqdm>=4.70.0",
+	"uvicorn[standard]>=0.52.3",
 ]
 
 [project.urls]
@@ -49,12 +48,12 @@ deepsky-train = "src.ml.train:main"
 
 [dependency-groups]
 dev = [
-	"matplotlib>=3.11.0",
-	"pyrefly>=1.1.1",
+	"matplotlib>=3.11.1",
+	"pyrefly>=1.2.0",
 	"pytest>=9.1.1",
 	"pytest-asyncio>=1.4.0",
 	"pytest-cov>=7.1.0",
-	"ruff>=0.15.21",
+	"ruff>=0.16.3",
 	"seaborn>=0.13.2",
 ]
 # Kept out of `dev` so CI does not pull a Jupyter stack it never runs.

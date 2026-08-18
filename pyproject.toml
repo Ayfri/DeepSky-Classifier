@@ -162,6 +162,13 @@ replace-imports-with-any = [
 ]
 search-path = ["src"]
 
+# Monkeypatch stubs are throwaway `lambda *_, **__` shims, so the strict preset's implicit-any-lambda check is pure noise here.
+[[tool.pyrefly.sub-config]]
+matches = "tests/**"
+
+[tool.pyrefly.sub-config.errors]
+implicit-any-lambda = false
+
 # Pytest
 [tool.pytest.ini_options]
 addopts = [

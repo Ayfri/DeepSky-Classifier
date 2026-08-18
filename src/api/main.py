@@ -53,11 +53,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 		app.state.model = None
 		app.state.metadata = None
 
-	yield
-
-	app.state.model = None
-	app.state.metadata = None
-	logger.info("Model unloaded, shutdown complete")
+	try:
+		yield
+	finally:
+		app.state.model = None
+		app.state.metadata = None
+		logger.info("Model unloaded, shutdown complete")
 
 
 app = FastAPI(

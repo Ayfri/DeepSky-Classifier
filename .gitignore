@@ -6,7 +6,10 @@ __pycache__/
 
 # Project Data & Artifacts
 data/
-models/
+# `models/*` plutôt que `models/` : même raison que pour reports/. Le rapport de recherche
+# d'hyperparamètres est une preuve de C5.2.4, pas un artefact binaire regénérable à l'identique.
+models/*
+!models/hyperparam_results.json
 # `reports/*` plutôt que `reports/` : git ne descend pas dans un répertoire exclu, donc une
 # négation ne pourrait pas réintégrer un fichier. Le tableau de bord est un livrable, pas un artefact.
 reports/*

@@ -1,10 +1,12 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
+from sqlalchemy import Engine
 
-from src.api.deps import get_metadata, get_model
+from src.api.deps import get_metadata, get_model, get_prediction_engine
+from src.api.history import record_predictions
 from src.api.schemas import (
 	BatchPredictionRequest,
 	BatchPredictionResponse,
@@ -38,8 +40,10 @@ def _build_response(
 @router.post("", response_model=PredictionResponse)
 def predict(
 	body: PredictionRequest,
+	background: BackgroundTasks,
 	model: RandomForestClassifier = Depends(get_model),
 	metadata: dict[str, Any] = Depends(get_metadata),
+	engine: Engine | None = Depends(get_prediction_engine),
 ) -> PredictionResponse:
 	"""Classify a single astronomical object.
 
@@ -53,14 +57,19 @@ def predict(
 	labels: list[str] = metadata.get("labels", list(model.classes_))
 	sha: str = metadata.get("model_sha256", "")
 
-	return _build_response(predicted_class, proba_row, labels, sha)
+	response = _build_response(predicted_class, proba_row, labels, sha)
+	if engine is not None:
+		background.add_task(record_predictions, engine, [body], [response])
+	return response
 
 
 @router.post("/batch", response_model=BatchPredictionResponse)
 def predict_batch(
 	body: BatchPredictionRequest,
+	background: BackgroundTasks,
 	model: RandomForestClassifier = Depends(get_model),
 	metadata: dict[str, Any] = Depends(get_metadata),
+	engine: Engine | None = Depends(get_prediction_engine),
 ) -> BatchPredictionResponse:
 	"""Classify multiple objects in a single call.
 
@@ -77,4 +86,6 @@ def predict_batch(
 		_build_response(str(pred), proba_row, labels, sha)
 		for pred, proba_row in zip(predictions_raw, probas, strict=True)
 	]
+	if engine is not None:
+		background.add_task(record_predictions, engine, list(body.objects), responses)
 	return BatchPredictionResponse(predictions=responses, model_sha256=sha)

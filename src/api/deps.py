@@ -2,6 +2,7 @@ from typing import Any
 
 from fastapi import HTTPException, Request
 from sklearn.ensemble import RandomForestClassifier
+from sqlalchemy import Engine
 
 
 def get_model(request: Request) -> RandomForestClassifier:
@@ -24,3 +25,12 @@ def get_metadata(request: Request) -> dict[str, Any]:
 	if metadata is None:
 		raise HTTPException(status_code=503, detail="Model metadata not available")
 	return metadata
+
+
+def get_prediction_engine(request: Request) -> Engine | None:
+	"""Resolve the historisation engine from app state, or None when disabled.
+
+	Unlike the model, the engine is optional: predictions are served even
+	when the database is unavailable, they are just not historised.
+	"""
+	return getattr(request.app.state, "engine", None)

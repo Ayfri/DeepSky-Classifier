@@ -70,13 +70,15 @@ def tmp_model_dir(tmp_path: Path, trained_model: RandomForestClassifier) -> Path
 
 @pytest.fixture
 def api_client(tmp_model_dir: Path) -> Generator[TestClient]:
-	"""TestClient with the model loaded from tmp_model_dir."""
+	"""TestClient with the model loaded from tmp_model_dir and a throwaway SQLite DB."""
 	from src.api.main import _load_model_artefacts, app
 	import src.core.settings as settings_module
 	from src.core.settings import Settings
 	from tests.api._helpers import fastapi_app
 
-	settings = Settings(model_dir=tmp_model_dir)
+	settings = Settings(
+		model_dir=tmp_model_dir, db_url=f"sqlite:///{tmp_model_dir / 'api_test.db'}"
+	)
 	settings_module._settings = settings
 
 	clf, meta = _load_model_artefacts(tmp_model_dir)

@@ -1,6 +1,7 @@
+from datetime import UTC, datetime
 from typing import ClassVar
 
-from sqlalchemy import Float, Integer, String
+from sqlalchemy import DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -97,3 +98,18 @@ class CuratedCelestialBody(Base):
 	wise_w1: Mapped[float | None] = mapped_column(Float, nullable=True)
 	wise_w2: Mapped[float | None] = mapped_column(Float, nullable=True)
 	z_mag: Mapped[float] = mapped_column(Float)
+
+
+class PredictionLog(Base):
+	"""One served prediction, historised for drift monitoring and retraining audits."""
+
+	__tablename__ = "prediction_log"
+
+	features: Mapped[str] = mapped_column(Text)
+	id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+	max_proba: Mapped[float] = mapped_column(Float)
+	model_sha256: Mapped[str] = mapped_column(String(64))
+	predicted_class: Mapped[str] = mapped_column(String(10))
+	timestamp: Mapped[datetime] = mapped_column(
+		DateTime(timezone=True), default=lambda: datetime.now(UTC)
+	)

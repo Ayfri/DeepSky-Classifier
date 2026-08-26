@@ -9,6 +9,7 @@ import joblib
 import uvicorn
 
 from src.api.routes import health, model, predict
+from src.core.database import get_engine, init_schema
 from src.core.settings import get_settings
 from src.utils.logger import setup_logger
 
@@ -54,10 +55,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 		app.state.metadata = None
 
 	try:
+		engine = get_engine(settings)
+		init_schema(engine)
+		app.state.engine = engine
+	except Exception as exc:
+		logger.warning("Prediction historisation disabled — database unreachable: %s", exc)
+		app.state.engine = None
+
+	try:
 		yield
 	finally:
 		app.state.model = None
 		app.state.metadata = None
+		if app.state.engine is not None:
+			app.state.engine.dispose()
+			app.state.engine = None
 		logger.info("Model unloaded, shutdown complete")
 
 

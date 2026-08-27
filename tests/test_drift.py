@@ -99,14 +99,15 @@ class TestServedMaxProba:
 		assert len(served_max_proba(engine)) == 0
 
 
-class TestReferenceMaxProba:
-	@pytest.fixture
-	def trained_dir(self, sample_curated_df: pd.DataFrame, tmp_path: Path) -> Path:
-		data_file = tmp_path / "curated.parquet"
-		sample_curated_df.to_parquet(data_file, index=False)
-		train_classifier(data_path=data_file, output_dir=tmp_path, figures_dir=tmp_path)
-		return tmp_path
+@pytest.fixture
+def trained_dir(sample_curated_df: pd.DataFrame, tmp_path: Path) -> Path:
+	data_file = tmp_path / "curated.parquet"
+	sample_curated_df.to_parquet(data_file, index=False)
+	train_classifier(data_path=data_file, output_dir=tmp_path, figures_dir=tmp_path)
+	return tmp_path
 
+
+class TestReferenceMaxProba:
 	def test_returns_one_probability_per_test_row(self, trained_dir: Path):
 		metadata = json.loads((trained_dir / "run_metadata.json").read_text(encoding="utf-8"))
 		reference = reference_max_proba(trained_dir)
@@ -123,3 +124,55 @@ class TestReferenceMaxProba:
 		sample_curated_df.iloc[:5].to_parquet(Path(metadata["dataset_path"]), index=False)
 		with pytest.raises(ValueError, match="SHA mismatch"):
 			reference_max_proba(trained_dir)
+
+
+class TestMain:
+	def _run(self, argv: list[str]) -> int:
+		import sys
+		from unittest.mock import patch
+
+		from src.ml.drift import main
+
+		with patch.object(sys, "argv", ["deepsky-drift", *argv]), pytest.raises(SystemExit) as exc:
+			main()
+		return int(exc.value.code or 0)
+
+	def test_f1_exits_zero_without_regression(self, tmp_path: Path):
+		previous = _write_metadata(tmp_path / "prev.json", 0.98)
+		current = _write_metadata(tmp_path / "curr.json", 0.98)
+		assert self._run(["f1", str(previous), str(current)]) == 0
+
+	def test_f1_exits_one_on_regression(self, tmp_path: Path):
+		previous = _write_metadata(tmp_path / "prev.json", 0.98)
+		current = _write_metadata(tmp_path / "curr.json", 0.90)
+		assert self._run(["f1", str(previous), str(current)]) == 1
+
+	def test_proba_skips_below_min_served(self, trained_dir: Path, monkeypatch: pytest.MonkeyPatch):
+		engine = create_engine(f"sqlite:///{trained_dir / 'main_test.db'}")
+		Base.metadata.create_all(engine)
+		import src.core.database as database
+
+		monkeypatch.setattr(database, "get_engine", lambda: engine)
+		assert self._run(["proba", "--model-dir", str(trained_dir)]) == 0
+
+	def test_proba_exits_one_on_drifted_history(
+		self, trained_dir: Path, monkeypatch: pytest.MonkeyPatch
+	):
+		engine = create_engine(f"sqlite:///{trained_dir / 'main_test.db'}")
+		Base.metadata.create_all(engine)
+		metadata = json.loads((trained_dir / "run_metadata.json").read_text(encoding="utf-8"))
+		with Session(engine) as session:
+			session.add_all(
+				PredictionLog(
+					features="{}",
+					max_proba=0.34,
+					model_sha256=metadata["model_sha256"],
+					predicted_class="STAR",
+				)
+				for _ in range(60)
+			)
+			session.commit()
+		import src.core.database as database
+
+		monkeypatch.setattr(database, "get_engine", lambda: engine)
+		assert self._run(["proba", "--model-dir", str(trained_dir)]) == 1

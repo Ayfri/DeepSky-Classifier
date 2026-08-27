@@ -42,6 +42,7 @@ Repository = "https://github.com/Ayfri/deepsky-classifier"
 
 [project.scripts]
 deepsky-api = "src.api.main:run"
+deepsky-drift = "src.ml.drift:main"
 deepsky-optimize = "src.ml.optimize:main"
 deepsky-pipeline = "src.workflows.pipeline:main"
 deepsky-train = "src.ml.train:main"

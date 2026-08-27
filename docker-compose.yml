@@ -98,6 +98,29 @@ services:
     # Postgres + the shared volume. Run on demand: `docker compose --profile pipeline run pipeline`.
     restart: "no"
 
+  drift:
+    <<: *app-image
+    command: ["uv", "run", "deepsky-drift", "proba"]
+    networks:
+      backend:
+        ipv4_address: 172.21.0.50
+    environment:
+      <<: *deepsky-base-env
+      # Read-only usage in practice: it only SELECTs prediction_log and reads the model volume.
+      DEEPSKY_DB_USER: ${DEEPSKY_DB_APP_USER:-deepsky_app}
+      DEEPSKY_DB_PASSWORD: ${DEEPSKY_DB_APP_PASSWORD:-deepsky_app}
+    volumes:
+      - app_data:/app/data
+      - app_models:/app/models
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    profiles:
+      - drift
+    # The weekly alert: a host cron runs `docker compose --profile drift run --rm drift` and a
+    # non-zero exit code (KS statistic above threshold) is the signal to investigate.
+    restart: "no"
+
   nginx:
     image: nginx:1.27-alpine
     networks:

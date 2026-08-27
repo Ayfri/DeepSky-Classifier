@@ -47,6 +47,9 @@ jobs:
           DEEPSKY_DB_PASSWORD: deepsky
         run: uv run alembic upgrade head
 
+      - name: Save the previous run metadata for the F1 regression check
+        run: cp models/run_metadata.json /tmp/previous_run_metadata.json
+
       - name: Run the federated pipeline (extract, validate, enrich, curate, train)
         env:
           DEEPSKY_DB_HOST: localhost
@@ -67,3 +70,8 @@ jobs:
             models/rf_classifier.joblib
             models/run_metadata.json
           retention-days: 30
+
+      # The alert is the workflow going red: a retrain that drops more than 0.01 F1 macro fails here.
+      # Runs after the upload so the regressed artefacts are kept for investigation.
+      - name: Alert on an F1 regression against the previous model
+        run: uv run deepsky-drift f1 /tmp/previous_run_metadata.json models/run_metadata.json
